@@ -3,15 +3,40 @@
   "version": "0.0.2",
   "type": "module",
   "license": "MIT",
+  "author": "Oleksandr Zhuravlov",
   "description": "Bidirectional data mapping for TypeScript — define a mapping once, get decode and encode, with non-invertibility surfaced in the type.",
-  "exports": {
-    ".": "./src/index.ts"
+  "keywords": [
+    "typescript",
+    "codec",
+    "bidirectional",
+    "decode",
+    "encode",
+    "serialization",
+    "mapping",
+    "schema"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rejifald/bimorph.git"
   },
-  "files": ["src", "README.md"],
+  "homepage": "https://github.com/rejifald/bimorph#readme",
+  "bugs": "https://github.com/rejifald/bimorph/issues",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist"],
   "workspaces": [
     "apps/*"
   ],
   "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "prepare": "npm run build",
     "typecheck": "tsc --noEmit",
     "check:runtime": "node scripts/check-runtime.mjs",
     "docs": "npm run dev --workspace @bimorph/docs"
