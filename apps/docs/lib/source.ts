@@ -26,9 +26,9 @@ export function llmsPreamble() {
 
 ## Quickstart
 \`\`\`ts
-import { enum_ } from 'bimorph';
+import { Enum } from 'bimorph';
 
-const Status = enum_([[1, 'active'], [0, 'inactive']]);
+const Status = Enum([[1, 'active'], [0, 'inactive']]);
 Status.decode(1);        // 'active'
 Status.encode('active'); // 1
 \`\`\``;

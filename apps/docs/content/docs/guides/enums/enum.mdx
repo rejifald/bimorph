@@ -1,17 +1,17 @@
 ---
-title: 'enum_'
+title: 'Enum'
 description: 'Map a set of discrete keys to values, entries-first, and get decode and encode from one declaration.'
 ---
 
-Reach for `enum_` when a fixed set of wire values maps to a fixed set of domain
+Reach for `Enum` when a fixed set of wire values maps to a fixed set of domain
 values — the status codes, kinds, and flags an API sends as ints or short strings.
 
 ## Example
 
 ```ts twoslash
-import { enum_ } from 'bimorph';
+import { Enum } from 'bimorph';
 
-const Status = enum_([
+const Status = Enum([
     [1, 'active'],
     [0, 'inactive'],
 ]);
@@ -25,7 +25,7 @@ const wire = Status.encode('active');
 
 ## Options
 
-`enum_` takes an **array of `[wire, domain]` entries**, not an object literal — an
+`Enum` takes an **array of `[wire, domain]` entries**, not an object literal — an
 object would stringify numeric keys (`{ 1: … }` becomes the string `"1"`), silently
 corrupting an int-keyed mapping. Entries keep `1` a number.
 

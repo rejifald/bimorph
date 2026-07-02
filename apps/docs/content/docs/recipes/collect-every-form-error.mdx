@@ -12,18 +12,18 @@ first.
 ## Example
 
 ```ts twoslash
-import { object, field, enum_ } from 'bimorph';
+import { Struct, Field, Enum } from 'bimorph';
 
 // [!code fold:start]
-const Status = enum_([[1, 'active'], [0, 'inactive']], { onMiss: 'throw' });
-const Kind = enum_([['a', 'alpha'], ['b', 'beta']], { onMiss: 'throw' });
+const Status = Enum([[1, 'active'], [0, 'inactive']], { onMiss: 'throw' });
+const Kind = Enum([['a', 'alpha'], ['b', 'beta']], { onMiss: 'throw' });
 // [!code fold:end]
-const Row = object({
-    status: field('s', Status),
-    kind: field('k', Kind),
+const Row = Struct({
+    status: Field('s', Status),
+    kind: Field('k', Kind),
 });
 
-// both fields miss → every failing path at once, keyed by field
+// both fields miss → every failing path at once, keyed by Field
 const result = Row.validate({ s: 9, k: 'z' });
 const errors = result.ok ? null : result.error;
 //    ^?
@@ -38,6 +38,6 @@ decoded value, so it's "decode but collect", not a boolean check.
 
 <Cards>
     <Card title="validate" href="/docs/guides/doors/validate" />
-    <Card title="object" href="/docs/guides/composites/object" />
+    <Card title="Struct" href="/docs/guides/composites/object" />
     <Card title="Errors & results" href="/docs/reference/errors" />
 </Cards>

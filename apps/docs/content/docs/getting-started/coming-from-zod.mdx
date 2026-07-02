@@ -14,9 +14,9 @@ The doors map almost one-to-one onto the validator methods you already know — 
 the `encode` direction a validator doesn't have:
 
 ```ts twoslash
-import { enum_ } from 'bimorph';
+import { Enum } from 'bimorph';
 
-const Status = enum_([[1, 'active'], [0, 'inactive']]);
+const Status = Enum([[1, 'active'], [0, 'inactive']]);
 
 Status.decode(1); // like .parse() — throws on failure
 Status.safeDecode(1); // like .safeParse() — returns a Result
@@ -30,8 +30,8 @@ Status.encode('active'); // the direction a one-way validator doesn't give you
 | `.parse(x)`                 | [`decode(x)`](/docs/guides/doors/decode-and-encode) |
 | `.safeParse(x)`             | [`safeDecode(x)`](/docs/guides/doors/safe-doors)    |
 | the encode / serialize side | [`encode(a)`](/docs/guides/doors/decode-and-encode) |
-| `z.object({ … })`           | [`object({ … })`](/docs/guides/composites/object)   |
-| `z.enum([…])` / `z.nativeEnum` | [`enum_([…])`](/docs/guides/enums/enum)          |
+| `z.Struct({ … })`           | [`Struct({ … })`](/docs/guides/composites/object)   |
+| `z.enum([…])` / `z.nativeEnum` | [`Enum([…])`](/docs/guides/enums/enum)          |
 | `.transform()` (one-way)    | [`iso` / `lossy` / `partial`](/docs/concepts/fidelity-tiers) — because it must invert |
 
 The load-bearing difference: a Zod `.transform()` is one-way, so it has no honest

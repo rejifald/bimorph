@@ -50,7 +50,7 @@ automatically:
 
 <Callout type="warn">
     **Anti-pattern:** don't pipe _into_ a wire-asymmetric codec as `b` — an aliased
-    `enum_` or an `encode: 'omit'` object, whose decode input and encode output
+    `Enum` or an `encode: 'omit'` object, whose decode input and encode output
     differ. The middle type must be symmetric, so bimorph rejects that at compile
     time rather than silently collapsing the two sides. Put the asymmetric codec on
     the wire-facing end (`a`) instead.

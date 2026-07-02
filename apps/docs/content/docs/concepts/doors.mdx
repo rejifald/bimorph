@@ -26,11 +26,11 @@ There are exactly three doors per direction — more would be noise:
 `encode` mirrors them: `encode` / `safeEncode` / `encodeOr`.
 
 ```ts twoslash
-import { enum_ } from 'bimorph';
+import { Enum } from 'bimorph';
 
 // onMiss widens the accepted input to `number`, so a value outside the map is a
 // runtime miss the doors can differ on — not a compile error.
-const Status = enum_([[1, 'active'], [0, 'inactive']], { onMiss: 'throw' });
+const Status = Enum([[1, 'active'], [0, 'inactive']], { onMiss: 'throw' });
 
 Status.decode(9); // throws BimorphError — you assert success
 Status.safeDecode(9); // { ok: false, error } — you handle it
@@ -42,7 +42,7 @@ what `decode` throws, so error handling composes. `Result` is a dumb discriminat
 union — `{ ok: true; value: A } | { ok: false; error: DecodeError }` — not a
 wrapper class with its own method zoo. One error API, not two.
 
-**`validate` is the fourth door, composites only.** `object`, `array`, and `tuple`
+**`validate` is the fourth door, composites only.** `Struct`, `List`, and `Tuple`
 expose `validate`, which accumulates every failing path into an `ErrorTree` instead
 of failing fast on the first. A leaf codec has one thing to fail and nothing to
 accumulate, so the door isn't on its type at all.

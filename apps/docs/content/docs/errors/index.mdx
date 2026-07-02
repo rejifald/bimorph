@@ -13,9 +13,9 @@ A `BimorphError.detail.code` is one of five stable strings, and the string is th
 slug of its catalog page. Read the `code`, and you know where to look.
 
 ```ts twoslash
-import { enum_, BimorphError } from 'bimorph';
+import { Enum, BimorphError } from 'bimorph';
 
-const Status = enum_([[1, 'active'], [0, 'inactive']], { onMiss: 'throw' });
+const Status = Enum([[1, 'active'], [0, 'inactive']], { onMiss: 'throw' });
 
 try {
     Status.decode(9);

@@ -10,9 +10,9 @@ type the throwing door raises — no separate error vocabulary to learn.
 ## Example
 
 ```ts twoslash
-import { enum_ } from 'bimorph';
+import { Enum } from 'bimorph';
 
-const Status = enum_([[1, 'active'], [0, 'inactive']], { onMiss: 'throw' });
+const Status = Enum([[1, 'active'], [0, 'inactive']], { onMiss: 'throw' });
 
 const result = Status.safeDecode(9);
 //    ^?

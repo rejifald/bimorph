@@ -29,7 +29,7 @@ usPhone.safeDecode('5550100');
 
 `decode` without a `ctx` is a compile error, so the region can't be silently dropped.
 `.bind()` fixes it once and hands back an ordinary codec — the form that binds `'1'`
-never repeats it, and the bound codec drops into `object` and `pipe` like any plain
+never repeats it, and the bound codec drops into `Struct` and `pipe` like any plain
 one.
 
 ## See also

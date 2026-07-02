@@ -5,20 +5,20 @@ description: 'Accumulate every failing path into an ErrorTree on composites, ins
 
 Reach for `validate` on a composite when you want _every_ failing field at once — a
 form submission where the user should see all the errors, not just the first. It's
-decode-only and lives on `object`, `array`, and `tuple`.
+decode-only and lives on `Struct`, `List`, and `Tuple`.
 
 ## Example
 
 ```ts twoslash
-import { object, field, enum_ } from 'bimorph';
+import { Struct, Field, Enum } from 'bimorph';
 
 // [!code fold:start]
-const Status = enum_([[1, 'active'], [0, 'inactive']], { onMiss: 'throw' });
-const Kind = enum_([['a', 'alpha'], ['b', 'beta']], { onMiss: 'throw' });
+const Status = Enum([[1, 'active'], [0, 'inactive']], { onMiss: 'throw' });
+const Kind = Enum([['a', 'alpha'], ['b', 'beta']], { onMiss: 'throw' });
 // [!code fold:end]
-const Row = object({
-    status: field('s', Status),
-    kind: field('k', Kind),
+const Row = Struct({
+    status: Field('s', Status),
+    kind: Field('k', Kind),
 });
 
 // both fields miss — validate collects BOTH paths instead of throwing on the first
@@ -41,7 +41,7 @@ collect", not a boolean checker.
 
 <Callout type="warn">
     **Anti-pattern:** don't look for `validate` on a leaf codec like `iso` or
-    `enum_` — a leaf has one thing to fail and nothing to accumulate, so the door
+    `Enum` — a leaf has one thing to fail and nothing to accumulate, so the door
     isn't on its type. Use [`safeDecode`](/docs/guides/doors/safe-doors) there; save
     `validate` for composites.
 </Callout>
@@ -51,7 +51,7 @@ collect", not a boolean checker.
 <Cards>
     <Card title="Doors, not flags" href="/docs/concepts/doors" />
     <Card title="safeDecode & decodeOr" href="/docs/guides/doors/safe-doors" />
-    <Card title="object" href="/docs/guides/composites/object" />
+    <Card title="Struct" href="/docs/guides/composites/object" />
     <Card
         title="Collect every bad field"
         href="/docs/recipes/collect-every-form-error"

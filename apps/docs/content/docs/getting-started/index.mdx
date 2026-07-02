@@ -27,9 +27,9 @@ A codec keeps the pair together, so one declaration is both directions and the
 result is narrowed, not `string | undefined`:
 
 ```ts twoslash
-import { enum_ } from 'bimorph';
+import { Enum } from 'bimorph';
 
-const Status = enum_([
+const Status = Enum([
     [0, 'inactive'],
     [1, 'active'],
 ]);
@@ -45,7 +45,7 @@ const code = Status.encode('active');
   the codec, its doors, its fidelity tiers, and the context axis. Read these to
   predict how a feature behaves.
 - **[Guides](/docs/guides/enums/enum)** — one page per export. How to reach for
-  `iso`, `enum_`, `object`, `pipe`, and the rest.
+  `iso`, `Enum`, `Struct`, `pipe`, and the rest.
 - **[Recipes](/docs/recipes)** — whole tasks in a single block, with links down to
   the guides for depth.
 - **[Reference](/docs/reference/codec-types)** — the exact type shapes, generated

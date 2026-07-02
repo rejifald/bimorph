@@ -13,8 +13,6 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "check:runtime": "node scripts/check-runtime.mjs",
-    "check:examples": "node scripts/check-examples.mjs",
-    "build:docs": "node scripts/build-docs.mjs",
     "docs": "npm run dev --workspace @bimorph/docs"
   },
   "devDependencies": {

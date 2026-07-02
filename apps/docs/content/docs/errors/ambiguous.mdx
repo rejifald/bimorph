@@ -10,7 +10,7 @@ A `BimorphError` with `code: "ambiguous"` and the message
 
 ## Why it happens
 
-Two entries in an [`enum_`](/docs/guides/enums/enum) — primaries, aliases, or one of
+Two entries in an [`Enum`](/docs/guides/enums/enum) — primaries, aliases, or one of
 each — map the **same wire value** to **different domain values**. Decode has to be a
 function: one wire in, one domain out. When two entries disagree on what a wire
 decodes to, there's no single answer, so it throws at creation.
@@ -30,7 +30,7 @@ a contextual codec whose `decode` chooses using the `ctx`.
 ## Related
 
 <Cards>
-    <Card title="enum_" href="/docs/guides/enums/enum" />
+    <Card title="Enum" href="/docs/guides/enums/enum" />
     <Card title="Aliases" href="/docs/guides/enums/aliases" />
     <Card title="Intentional many-to-one" href="/docs/concepts/aliases" />
     <Card title="The context axis" href="/docs/concepts/context-requirement" />

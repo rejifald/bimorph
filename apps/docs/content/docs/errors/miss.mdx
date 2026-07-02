@@ -13,7 +13,7 @@ A `BimorphError` with `code: "miss"` and one of:
 
 ## Why it happens
 
-An [`enum_`](/docs/guides/enums/enum) (or another leaf) received a value it doesn't
+An [`Enum`](/docs/guides/enums/enum) (or another leaf) received a value it doesn't
 know, and no recovery was configured. On decode, the wire value matched neither a
 primary entry nor an [alias](/docs/guides/enums/aliases). On encode, the domain value
 has no primary entry — an alias-only spelling can decode but never encode, so a
@@ -34,7 +34,7 @@ domain value reachable only through the wire side has nothing to emit.
 ## Related
 
 <Cards>
-    <Card title="enum_" href="/docs/guides/enums/enum" />
+    <Card title="Enum" href="/docs/guides/enums/enum" />
     <Card title="onMiss" href="/docs/guides/enums/on-miss" />
     <Card title="The resolver" href="/docs/guides/recovery/resolver" />
     <Card title="Aliases" href="/docs/guides/enums/aliases" />

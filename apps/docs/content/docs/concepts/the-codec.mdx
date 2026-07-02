@@ -29,9 +29,9 @@ inverse is guesswork, says so in its type, so a caller cannot silently assume a
 context-free clean round-trip.
 
 ```ts twoslash
-import { enum_ } from 'bimorph';
+import { Enum } from 'bimorph';
 
-const Status = enum_([
+const Status = Enum([
     [1, 'active'],
     [0, 'inactive'],
 ]);
@@ -61,7 +61,7 @@ What a codec _needs_ to run is its
 argument the value can't carry, checked at compile time.
 
 And because a codec is itself a value, codecs _compose_:
-[`object`](/docs/guides/composites/object) maps a record field-by-field and
+[`Struct`](/docs/guides/composites/object) maps a record field-by-field and
 [`pipe`](/docs/guides/composition/pipe) chains two codecs end to end, each taking
 the weaker fidelity and the merged context of its parts.
 

@@ -2,10 +2,10 @@
  * bimorph prototype.
  *
  * Purpose: prove the two type-level claims from docs/DESIGN.md hold in real TS:
- *   1. enum_ alias-narrowing — decode input is the WIDE union (primaries + aliases),
+ *   1. Enum alias-narrowing — decode input is the WIDE union (primaries + aliases),
  *      encode output is the NARROW union (primaries only).
  *   2. contextual codecs — `Ctx` third param, optional-trailing-arg door signatures,
- *      `.bind()` context-erasure, and context INTERSECTION through `object`.
+ *      `.bind()` context-erasure, and context INTERSECTION through `Struct`.
  *   plus: `Partial` fidelity removes the throwing door at the type level.
  *
  * Runtime is intentionally minimal; the types are the deliverable.
@@ -110,7 +110,7 @@ interface EncodeThrow<A, BOut, Ctx> {
 }
 
 /**
- * The accumulation door — present only on composites (`object`/`array`/`tuple`), never
+ * The accumulation door — present only on composites (`Struct`/`List`/`Tuple`), never
  * on leaves (a leaf has one thing to fail, nothing to accumulate). Decode-only: it
  * collects every failing path into an `ErrorTree` instead of failing fast on the first.
  */
@@ -312,12 +312,12 @@ export type WidenWire<T> =
   | (T extends symbol ? symbol : never);
 
 // ---------------------------------------------------------------------------
-// enum_ — discrete map: alias-narrowing, onMiss recovery, onCollision policy
+// Enum — discrete map: alias-narrowing, onMiss recovery, onCollision policy
 // ---------------------------------------------------------------------------
 
 // Overload A — no recovery: decode input is the CLOSED union (primary | alias wire),
 // so an unmapped value is a compile error.
-export function enum_<
+export function Enum<
   const E extends readonly (readonly [PropertyKey, unknown])[],
   const AL extends readonly (readonly [PropertyKey, E[number][1]])[] = readonly [],
 >(
@@ -335,7 +335,7 @@ export function enum_<
 >;
 // Overload B — `onMiss` default/throw preset: decode input WIDENS to the wire's
 // primitive base, since the point of recovery is to accept values not in the map.
-export function enum_<
+export function Enum<
   const E extends readonly (readonly [PropertyKey, unknown])[],
   const AL extends readonly (readonly [PropertyKey, E[number][1]])[] = readonly [],
 >(
@@ -355,7 +355,7 @@ export function enum_<
 // Overload C — `onMiss` resolver: widened input, optionally contextual (a resolver
 // typed with `ctx` makes decode require it). Typed as a bare `Resolver` — not a union —
 // so a resolver's return literal stays contextually typed to the domain.
-export function enum_<
+export function Enum<
   const E extends readonly (readonly [PropertyKey, unknown])[],
   const AL extends readonly (readonly [PropertyKey, E[number][1]])[] = readonly [],
   Ctx = void,
@@ -373,7 +373,7 @@ export function enum_<
   Ctx,
   "iso"
 >;
-export function enum_(
+export function Enum(
   entries: readonly (readonly [PropertyKey, unknown])[],
   opts?: {
     readonly aliases?: readonly (readonly [PropertyKey, unknown])[];
@@ -464,7 +464,7 @@ export function enum_(
 }
 
 // ---------------------------------------------------------------------------
-// object / field — struct mapping with rename, encode-omit, and Ctx intersection
+// Struct / Field — struct mapping with rename, encode-omit, and Ctx intersection
 // ---------------------------------------------------------------------------
 
 /** How a field participates in encode output. */
@@ -491,7 +491,7 @@ type AnyField = Field<string, any, any, any, any, Fidelity, OmitMode>;
 /**
  * N wire fields ↔ 1 domain field. The inner codec maps the *sub-object* of the grouped
  * wire keys ↔ the single domain value (e.g. three booleans `{public,private,unlisted}`
- * ↔ a `visibility` enum). Placed in `object` like a field, but contributes all its wire
+ * ↔ a `visibility` enum). Placed in `Struct` like a field, but contributes all its wire
  * keys to the composite wire shape.
  */
 export interface GroupField<WK extends string, A, BSub, Ctx, F extends Fidelity> {
@@ -513,21 +513,21 @@ type Simplify<T> = { [K in keyof T]: T[K] };
  * wire-out type. Overloaded so `when`'s parameter is contextually typed to the field's
  * domain value `A`.
  */
-export function field<WK extends string, A, BIn, BOut, Ctx, F extends Fidelity>(
+export function Field<WK extends string, A, BIn, BOut, Ctx, F extends Fidelity>(
   wireKey: WK,
   codec: CodecFull<A, BIn, BOut, Ctx, F>,
 ): Field<WK, A, BIn, BOut, Ctx, F, "no">;
-export function field<WK extends string, A, BIn, BOut, Ctx, F extends Fidelity>(
+export function Field<WK extends string, A, BIn, BOut, Ctx, F extends Fidelity>(
   wireKey: WK,
   codec: CodecFull<A, BIn, BOut, Ctx, F>,
   opts: { readonly encode: "omit" },
 ): Field<WK, A, BIn, BOut, Ctx, F, "always">;
-export function field<WK extends string, A, BIn, BOut, Ctx, F extends Fidelity>(
+export function Field<WK extends string, A, BIn, BOut, Ctx, F extends Fidelity>(
   wireKey: WK,
   codec: CodecFull<A, BIn, BOut, Ctx, F>,
   opts: { readonly encode: "omit-if"; readonly when: (a: A) => boolean },
 ): Field<WK, A, BIn, BOut, Ctx, F, "if">;
-export function field(
+export function Field(
   wireKey: string,
   codec: CodecFull<any, any, any, any, Fidelity>,
   opts?: { readonly encode?: "omit" | "omit-if"; readonly when?: (a: any) => boolean },
@@ -543,7 +543,7 @@ export function field(
  * states (all-false, two-true) that no creation diagnostic can catch are the codec's job
  * (a resolver or `partial` decode).
  */
-export function group<
+export function Group<
   const WK extends readonly string[],
   A,
   BSub extends Record<WK[number], unknown>,
@@ -669,7 +669,7 @@ function pickSub(wire: any, wireKeys: readonly string[]): any {
   return sub;
 }
 
-export function object<Fields extends Record<string, AnyFieldLike>>(
+export function Struct<Fields extends Record<string, AnyFieldLike>>(
   fields: Fields,
 ): CodecFull<
   DomainOf<Fields>,
@@ -765,10 +765,10 @@ type MergeCtx<C1, C2> = [C1] extends [void]
  * Result fidelity is the *weaker* of the two; result context is the *intersection*.
  *
  * `a` (the wire-facing codec) may be **asymmetric** — a wide decode input and a narrow
- * encode output, as produced by an aliased `enum_` — and that split propagates to the
+ * encode output, as produced by an aliased `Enum` — and that split propagates to the
  * composed codec's `BIn`/`BOut` instead of collapsing to one type. The mid `M` is `a`'s
  * domain and `b`'s wire, kept symmetric; piping *into* a wire-asymmetric `b` (e.g. an
- * `encode:"omit"` object) is intentionally a type error rather than a silent collapse.
+ * `encode:"omit"` Struct) is intentionally a type error rather than a silent collapse.
  */
 export function pipe<
   A,
@@ -810,14 +810,14 @@ export function pipe<
 }
 
 // ---------------------------------------------------------------------------
-// optional — null/absent <-> undefined normalization
+// Nullable — null/absent <-> undefined normalization
 // ---------------------------------------------------------------------------
 
 /**
  * Wrap a codec so a `null` or absent wire value decodes to `undefined`, and an
  * `undefined` domain value encodes back to `null`. Fidelity and context pass through.
  */
-export function optional<A, BIn, BOut, Ctx, F extends Fidelity>(
+export function Nullable<A, BIn, BOut, Ctx, F extends Fidelity>(
   codec: CodecFull<A, BIn, BOut, Ctx, F>,
 ): CodecFull<A | undefined, BIn | null | undefined, BOut | null, Ctx, F> {
   const c = codec as any;
@@ -830,11 +830,11 @@ export function optional<A, BIn, BOut, Ctx, F extends Fidelity>(
 }
 
 // ---------------------------------------------------------------------------
-// array / tuple — collections with per-index path segments
+// List / Tuple — collections with per-index path segments
 // ---------------------------------------------------------------------------
 
 /** Homogeneous list: each element runs through `codec`; errors carry a `[i]` segment. */
-export function array<A, BIn, BOut, Ctx, F extends Fidelity>(
+export function List<A, BIn, BOut, Ctx, F extends Fidelity>(
   codec: CodecFull<A, BIn, BOut, Ctx, F>,
 ): CodecFull<A[], BIn[], BOut[], Ctx, F> & ValidateDoor<A[], BIn[], Ctx> {
   const c = codec as any;
@@ -906,7 +906,7 @@ type FidelityTuple<C extends readonly AnyCodec[]> = {
   : never;
 
 /** Fixed-length heterogeneous list: element `i` runs through `codecs[i]`. */
-export function tuple<const C extends readonly AnyCodec[]>(
+export function Tuple<const C extends readonly AnyCodec[]>(
   ...codecs: C
 ): CodecFull<
   DomainTuple<C>,

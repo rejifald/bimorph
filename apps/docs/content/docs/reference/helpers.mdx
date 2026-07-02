@@ -32,7 +32,7 @@ trailing argument — `assertRoundTrip(codec, samples, ctx)`.
 `.bind(ctx)` is a method on every codec, not a free function. It fixes a contextual
 codec's context once and returns an ordinary `Codec<A, B, void>` with the trailing
 `ctx` argument gone from every door — which is what lets a contextual codec drop into
-`object`, `array`, and `pipe`.
+`Struct`, `List`, and `pipe`.
 
 ```ts twoslash
 import { partial } from 'bimorph';

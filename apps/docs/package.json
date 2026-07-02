@@ -5,7 +5,7 @@
     "type": "module",
     "description": "bimorph documentation site — Fumadocs (Next.js App Router) with twoslash-checked examples against the real bimorph types.",
     "scripts": {
-        "dev": "next dev -p 3411",
+        "dev": "next dev -p ${PORT:-3411}",
         "build": "fumadocs-mdx && next build",
         "start": "next start",
         "check:types": "fumadocs-mdx && next typegen && tsc --noEmit",

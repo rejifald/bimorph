@@ -1,9 +1,9 @@
 ---
-title: 'object'
+title: 'Struct'
 description: 'Map a struct field-by-field, with per-field rename and codec, and get the accumulate-all-errors validate door.'
 ---
 
-Reach for `object` when a wire record maps to a domain object — each field renamed
+Reach for `Struct` when a wire record maps to a domain object — each field renamed
 and converted by its own codec. The result is itself a codec, so it decodes and
 encodes the whole struct, and it carries the `validate` door for accumulating field
 errors.
@@ -11,16 +11,16 @@ errors.
 ## Example
 
 ```ts twoslash
-import { object, field, iso } from 'bimorph';
+import { Struct, Field, iso } from 'bimorph';
 
 // [!code fold:start]
 const num = iso<number, number>({ decode: (n) => n, encode: (n) => n });
 const str = iso<string, string>({ decode: (s) => s, encode: (s) => s });
 // [!code fold:end]
-// wire { user_id, full_name } ↔ domain { id, name } — keys renamed per field
-const User = object({
-    id: field('user_id', num),
-    name: field('full_name', str),
+// wire { user_id, full_name } ↔ domain { id, name } — keys renamed per Field
+const User = Struct({
+    id: Field('user_id', num),
+    name: Field('full_name', str),
 });
 
 const domain = User.decode({ user_id: 7, full_name: 'Ada' });
@@ -29,34 +29,34 @@ const domain = User.decode({ user_id: 7, full_name: 'Ada' });
 
 ## Options
 
-`object` takes one record whose keys are your **domain** keys and whose values are
-[`field`](/docs/guides/composites/field) (or [`group`](/docs/guides/composites/group))
-entries. Each `field(wireKey, codec)` names the wire key it reads and the codec that
+`Struct` takes one record whose keys are your **domain** keys and whose values are
+[`Field`](/docs/guides/composites/field) (or [`Group`](/docs/guides/composites/group))
+entries. Each `Field(wireKey, codec)` names the wire key it reads and the codec that
 converts it, so a wire key can differ from its domain key.
 
-An `object` is more than the sum of its fields:
+An `Struct` is more than the sum of its fields:
 
 - It exposes the [`validate`](/docs/guides/doors/validate) door, which accumulates
   every failing field path into an `ErrorTree` instead of throwing on the first.
 - Its encode output type **drops** fields marked
   [`encode: "omit"`](/docs/guides/composites/field), so a round-trip can't resend a
   read-only wire field.
-- If any field is contextual, the `object` is contextual too: it **intersects** its
+- If any field is contextual, the `Struct` is contextual too: it **intersects** its
   fields' contexts into one bag and passes it down.
 
 <Callout type="warn">
-    **Anti-pattern:** don't use a `field` per wire key when several wire keys
+    **Anti-pattern:** don't use a `Field` per wire key when several wire keys
     collectively encode _one_ domain value — three booleans that mean one
-    `visibility`. That's a [`group`](/docs/guides/composites/group), which maps N
-    wire keys to a single domain field; a pile of `field`s would expose the wire
+    `visibility`. That's a [`Group`](/docs/guides/composites/group), which maps N
+    wire keys to a single domain field; a pile of `Field`s would expose the wire
     shape your domain is trying to hide.
 </Callout>
 
 ## See also
 
 <Cards>
-    <Card title="field" href="/docs/guides/composites/field" />
-    <Card title="group" href="/docs/guides/composites/group" />
+    <Card title="Field" href="/docs/guides/composites/field" />
+    <Card title="Group" href="/docs/guides/composites/group" />
     <Card title="validate" href="/docs/guides/doors/validate" />
     <Card title="The codec" href="/docs/concepts/the-codec" />
     <Card

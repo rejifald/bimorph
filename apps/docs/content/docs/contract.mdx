@@ -1,0 +1,282 @@
+---
+title: 'Contract: before & after'
+description: 'A design review of the consumer-facing surface — export-name collisions, the Codec/CodecFull split, optional’s encode, and leaked internal types — with before/after options and a recommendation for each.'
+---
+
+This is a review of everything a consumer *touches*: the names they import, the
+types they annotate with, and the shapes they pass in and get back. Each finding is
+shown **before** (the surface today) and **after** (one or more options), with the
+trade-off spelled out and a recommendation.
+
+<Callout type="warn">
+    **Design note, not shipped API.** The `after` snippets are the intended surface,
+    not the current one — nothing here is exported yet (the naming in Finding 1 is
+    **decided** but not yet implemented). The version is `0.0.0-design` with **no
+    published consumers**, which is exactly why now is the cheap moment to change
+    names. Every code block on this page is plain (un-typechecked) on purpose.
+</Callout>
+
+## The whole surface, in one import
+
+Here is what a consumer pulls in today:
+
+```ts
+import {
+    iso, lossy, partial, // leaf builders — distinctive, fine
+    enum_, // wears a reserved-word underscore
+    object, field, group, array, tuple, optional, pipe, // collide with everyday names
+} from 'bimorph';
+```
+
+Seven of these — `object`, `field`, `group`, `array`, `tuple`, `optional`, `pipe` —
+are among the most common local variable names in any codebase. Importing `field`
+means a consumer can no longer write `const field = …` in that module. `enum_` wears
+an underscore because `enum` is a reserved word. Those two facts drive the first and
+largest finding.
+
+## Finding 1 — Exports collide with everyday identifiers
+
+The core tension is a triangle. You want the surface to be **collision-safe**,
+**tree-shakeable**, and free of the **`enum_` wart** — and no single approach gives
+all three for free. It helps to know two hard constraints up front:
+
+- A flat export **cannot** be literally named `enum` — it is a reserved word in an
+  import/export binding. Only an object *property* may be called `enum`.
+- A default-exported object literal (`export default { … }`) references every
+  function it holds, so a bundler must keep them all — it **cannot** be tree-shaken.
+
+### Option A — namespace the named exports
+
+Change nothing in the package; change the *import* the docs recommend.
+
+```ts
+import * as b from 'bimorph';
+
+const User = b.object({
+    id: b.field('user_id', Id),
+    status: b.field('status', b.enum_([[1, 'active'], [0, 'inactive']])),
+});
+```
+
+Collision-safe (one identifier, `b`), and **still tree-shakeable** in a modern ESM
+bundler *provided the package sets* `"sideEffects": false` — unused members like
+`b.tuple` drop out. The catch: you are stuck with `b.enum_`; a namespace over named
+exports can't rename the reserved word.
+
+### Option B — a default namespace object
+
+Ship a single object as the default export.
+
+```ts
+import b from 'bimorph';
+
+b.enum([[1, 'active'], [0, 'inactive']]); // ← no underscore: `enum` is legal as a property
+```
+
+This is the *only* form that drops the underscore without renaming, because the
+property may be called `enum`. The price is real: the object holds every function,
+so the whole surface lands in every bundle — **no tree-shaking**.
+
+### Option C — PascalCase constructors (chosen)
+
+Keep flat named exports (tree-shakeable), but give every codec constructor a
+**PascalCase noun** name. Casing is the signal: a capital identifier reads as a
+type/constructor — "this *is* a codec" — not as an action, and it can't shadow the
+everyday lowercase locals a flat lowercase export would squat on.
+
+| Today      | Chosen     | Why                                                          |
+| ---------- | ---------- | ----------------------------------------------------------- |
+| `enum_`    | `Enum`     | `enum` is reserved only in lowercase; `Enum` is a clean noun |
+| `object`   | `Struct`   | not `Object` — that shadows the JS global                    |
+| `array`    | `List`     | not `Array` — that shadows the JS global                     |
+| `tuple`    | `Tuple`    | no global to collide with                                    |
+| `field`    | `Field`    | capital dodges the ubiquitous lowercase `field`             |
+| `group`    | `Group`    | capital dodges the common lowercase `group`                 |
+| `optional` | `Nullable` | says "null ⇄ undefined," not "the key may vanish" (Finding 3) |
+| `pipe`     | `pipe`     | a real operator, not a codec noun — stays lowercase         |
+| `iso` `lossy` `partial` | *(keep lowercase)* | capitalizing `Partial` would shadow TS `Partial<T>` |
+| `assertRoundTrip` | *(keep)* | test helper, already distinctive                     |
+
+The `object` example, in the chosen convention:
+
+```ts
+import { Struct, Field, List, Enum, Nullable, iso } from 'bimorph';
+
+const User = Struct({
+    id: Field('user_id', Id),
+    roles: Field('roles', List(Role)),
+    status: Field('status', Enum([[1, 'active'], [0, 'inactive']])),
+    nickname: Field('nickname', Nullable(Str)),
+});
+```
+
+It reads as "User **is a** Struct of …" — the same way `type User = …` reads —
+because a codec, like a type, is a declaration you name once and reuse, not a
+one-off call.
+
+### The trade-off, side by side
+
+| Option                      | Collision-safe | Tree-shakeable | Drops `enum_` wart | Reads as a declaration | Migration cost |
+| --------------------------- | :------------: | :------------: | :----------------: | :--------------------: | -------------- |
+| Flat named (today)          |       ✗        |       ✓        |         ✗          |           ✗            | —              |
+| A · `import * as b`         |       ✓        |      ✓\*       |    ✗ (`b.enum_`)   |           ✗            | none (docs)    |
+| B · default object          |       ✓        |       ✗        |     ✓ (`b.enum`)   |           ✗            | low            |
+| C · PascalCase flat exports |       ✓        |       ✓        |     ✓ (`Enum`)     |           ✓            | high\*\*       |
+
+\* with `"sideEffects": false` in a modern ESM bundler.
+\*\* free in practice — see the decision below.
+
+<Callout type="info">
+    **Decided: C — PascalCase flat exports.** It is the only option that is
+    collision-safe **and** tree-shakeable **and** drops the `enum_` underscore, and
+    the migration cost that normally sinks a rename is free here: the version is
+    `0.0.0-design` with no published consumers, so it is a find-and-replace in our own
+    source and docs. A namespace re-export (`export * as b`) can ship alongside for
+    anyone who prefers `b.Struct(…)`; both forms still tree-shake.
+</Callout>
+
+### Why PascalCase — the rationale
+
+A codec is a *value that behaves like a type*: you declare it once, name it, and reuse
+it, exactly like a `type` alias. Naming it as a noun matches that — `const User =
+Struct({ … })` reads like `type User = { … }`. A lowercase verb (`struct(…)`,
+`lookup(…)`) reads as a one-off operation and hides that a codec is a reusable
+declaration. Three things fall out of the choice:
+
+- **It's the only collision-free signal left** once a namespace is off the table.
+  `Struct` / `Field` / `List` can't shadow the everyday lowercase `struct`, `field`,
+  or `array` a reader already has in scope.
+- **It drops the wart.** `enum` is reserved only in lowercase, so `Enum` is both a
+  legal identifier and a clean noun — no underscore, and no verb ambiguity the way
+  `lookup` had.
+- **It's an established idiom, not a novelty.** **runtypes** exports `Array`,
+  `Record`, `Tuple`, and `String` capitalized for exactly this reason, and **Effect
+  Schema** uses `Schema.Struct` / `Schema.Array`. The runtime-schema audience already
+  reads PascalCase as "constructor."
+
+### Where the convention stops
+
+The rule is "**PascalCase the codec constructors**," not "capitalize everything":
+
+- **Operators stay lowercase.** `pipe(a, b)` is a genuine left-to-right operation, not
+  a codec noun; capitalizing it would misrepresent it.
+- **The fidelity leaves stay lowercase** — `iso`, `lossy`, `partial`. Capitalizing
+  `Partial` would sit confusingly beside TS's `Partial<T>` utility type, and the three
+  are already distinctive enough not to need the collision fix.
+- **Never capitalize into a global or built-in.** That's why `Struct` / `List`, not
+  `Object` / `Array` — the capitalized forms would shadow the JS globals.
+- **Lint note.** Some ESLint setups (`new-cap`) flag calling a Capitalized function
+  without `new`. It's a one-line `capIsNewExceptions` tweak — worth documenting so it
+  doesn't surprise users.
+
+## Finding 2 — `Codec` vs `CodecFull` is an annotation footgun
+
+Your two most-used constructors — `enum_` (with aliases) and `object` (with
+`encode: "omit"`) — return the **asymmetric** `CodecFull<A, BIn, BOut, …>`, where the
+decode input is wider than the encode output. But the "common case" alias you hand
+people, `Codec<A, B>`, is **symmetric** (`BIn === BOut`). So annotating the very
+feature you shipped fails:
+
+```ts
+// Before — the symmetric alias can't name an aliased enum
+const Status = enum_([[1, 'active']], { aliases: [['ACTIVE', 'active']] });
+
+const c: Codec<'active', 1> = Status;
+// ✗ decode input is `1 | "ACTIVE"`, wider than the encode output `1`
+```
+
+Two problems: the name `CodecFull` reads as "the complete one," not "the asymmetric
+one," and the type people reach for is the one that can't hold the flagship feature.
+
+The fix collapses the two into one type by giving `BOut` a **default of `BIn`** —
+the symmetric case simply becomes the two-argument form:
+
+```ts
+// After — one type; symmetric is just the short form
+export type Codec<
+    A,
+    BIn,
+    BOut = BIn,
+    Ctx = void,
+    F extends Fidelity = 'iso',
+> = /* … the full asymmetric shape … */;
+
+const c: Codec<'active', 1 | 'ACTIVE', 1> = Status; // ✓ honest asymmetric
+const plain: Codec<'active', 1> = enum_([[1, 'active']]); // ✓ symmetric, short form
+```
+
+`CodecFull` disappears, `Codec<A, B>` still means what it always did, and the
+asymmetric form no longer needs a second name.
+
+## Finding 3 — `optional` emits `null` silently
+
+`optional` *accepts* `null`, `undefined`, or an absent key on decode, but always
+*emits* `null` on encode — it never drops the key. That's a defensible default, but
+the name primes the TypeScript `?:` meaning ("this key may be missing"), so the
+encode behaviour is a surprise.
+
+```ts
+// Before — the name suggests the key can vanish; it can't
+const Nick = optional(Str);
+Nick.encode(undefined); // → null   (key always present, value null)
+```
+
+```ts
+// After — rename to say what it does, and point at the real key-omit tool
+const Nick = Nullable(Str); // decode: null | absent → undefined; encode: undefined → null
+
+// to actually drop the key on encode, that's a field concern, not a wrapper:
+Field('nickname', Str, { encode: 'omit-if', when: (v) => v === undefined });
+```
+
+`Nullable` names the `null` ⇄ `undefined` normalization honestly and stops implying
+key omission it doesn't do. (It's part of the PascalCase set decided in Finding 1.)
+
+## Finding 4 — internal types leak into the public surface
+
+`OmitMode`, `WidenWire`, and `CtxArg` are exported, but no consumer ever names them —
+they're implementation details of `field`, `enum_`, and the context machinery. Every
+exported type is a compatibility commitment, so the ones nobody annotates with are
+pure liability.
+
+```ts
+// Before — exported, never used by a consumer
+export type OmitMode = 'no' | 'always' | 'if';
+export type WidenWire<T> = /* … */;
+export type CtxArg<Ctx> = /* … */;
+```
+
+```ts
+// After — internal; the public type surface shrinks to what people actually annotate
+//   Codec, Iso (if kept), Result, DecodeError, ErrorTree, Fidelity,
+//   Resolver, ResolveContext, OnMiss, OnCollision, BimorphError
+```
+
+## Settled — what this review is *not* changing
+
+- **`enum_` stays entries-first** (`[[wire, domain]]`), not an object map. A
+  domain-keyed object (`{ active: 1 }`) is the inverse direction of `decode` and
+  cannot express [aliases](/docs/guides/enums/aliases); a wire-keyed object
+  stringifies numeric keys. The array is the only shape that survives both. (The
+  rename in Finding 1 touches only the *name*, `enum_` → `Enum`, not the argument.)
+- **The door trio** (`decode` / `safeDecode` / `decodeOr` and the encode mirror) is
+  consistent and greppable — no change.
+- **`Result` as a dumb discriminated union** stays a union, not a wrapper class.
+
+## In one line each
+
+- **Naming:** adopt PascalCase flat constructors — `Struct`, `Field`, `List`, `Enum`,
+  `Tuple`, `Group`, `Nullable` — now, while there are no consumers; optionally add
+  `export * as b` alongside.
+- **Types:** merge `CodecFull` into `Codec` via a `BOut = BIn` default; stop
+  exporting `OmitMode` / `WidenWire` / `CtxArg`.
+- **`optional`:** rename to `nullable` and document that encode emits `null`.
+
+## See also
+
+<Cards>
+    <Card title="Constructors" href="/docs/reference/constructors" />
+    <Card title="Codec types" href="/docs/reference/codec-types" />
+    <Card title="enum_" href="/docs/guides/enums/enum" />
+    <Card title="Principles" href="/docs/concepts/principles" />
+</Cards>

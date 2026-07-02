@@ -11,9 +11,9 @@ and `encode` is typed so it can only ever emit the canonical value.
 ## Example
 
 ```ts twoslash
-import { enum_ } from 'bimorph';
+import { Enum } from 'bimorph';
 
-const Flag = enum_([['search_v2', 'SearchV2']], {
+const Flag = Enum([['search_v2', 'SearchV2']], {
     aliases: [
         ['new-search', 'SearchV2'],
         ['newSearchUI', 'SearchV2'],

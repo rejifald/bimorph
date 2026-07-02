@@ -1,17 +1,17 @@
 ---
 title: 'Collapse several wire flags into one domain value'
-description: 'Fold a set of booleans — a checkbox group — into a single enum with group, mapping N wire keys to one domain field.'
+description: 'Fold a set of booleans — a checkbox group — into a single enum with Group, mapping N wire keys to one domain field.'
 ---
 
 The wire carries a value as a set of mutually-exclusive booleans — `is_public`,
 `is_private`, `is_unlisted` — but your domain wants one `visibility`. Fold them with
-[`group`](/docs/guides/composites/group): it maps the N wire keys to a single domain
+[`Group`](/docs/guides/composites/group): it maps the N wire keys to a single domain
 field, in both directions.
 
 ## Example
 
 ```ts twoslash
-import { object, group, iso } from 'bimorph';
+import { Struct, Group, iso } from 'bimorph';
 
 // [!code fold:start]
 type Visibility = 'public' | 'private' | 'unlisted';
@@ -26,8 +26,8 @@ const visibility = iso<Visibility, Flags>({
     }),
 });
 // [!code fold:end]
-const Post = object({
-    visibility: group(['is_public', 'is_private', 'is_unlisted'], visibility),
+const Post = Struct({
+    visibility: Group(['is_public', 'is_private', 'is_unlisted'], visibility),
 });
 
 const domain = Post.decode({ is_public: true, is_private: false, is_unlisted: false });
@@ -42,7 +42,7 @@ that returns a `Result`.
 ## See also
 
 <Cards>
-    <Card title="group" href="/docs/guides/composites/group" />
-    <Card title="object" href="/docs/guides/composites/object" />
+    <Card title="Group" href="/docs/guides/composites/group" />
+    <Card title="Struct" href="/docs/guides/composites/object" />
     <Card title="partial" href="/docs/guides/leaves/partial" />
 </Cards>

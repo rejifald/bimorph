@@ -104,6 +104,13 @@ export const pages: Page[] = [
             'Define a mapping once and get decode and encode for free — with duplicate values, lossy transforms, read-only fields, and context-dependent reverses surfaced in the type, not hidden.',
         kind: 'landing',
     },
+    {
+        path: 'contract',
+        title: 'Contract: before & after',
+        description:
+            'A design review of the consumer-facing surface — export-name collisions, the Codec/CodecFull split, optional’s encode, and leaked internal types — with before/after options and a recommendation for each.',
+        kind: 'concept',
+    },
 
     // ── Getting started ─────────────────────────────────────────────────────
     {
@@ -147,7 +154,7 @@ export const pages: Page[] = [
         path: 'recipes/reverse-a-lookup-table',
         title: 'Reverse a lookup table without the boilerplate',
         description:
-            'Replace a status-code object and its hand-written reverse lookup with one enum_ that decodes and encodes both ways.',
+            'Replace a status-code object and its hand-written reverse lookup with one Enum that decodes and encodes both ways.',
         kind: 'guide',
     },
     {
@@ -161,7 +168,7 @@ export const pages: Page[] = [
         path: 'recipes/map-a-dto-to-your-domain',
         title: 'Map a wire DTO to your domain object',
         description:
-            'Rename keys and convert each field with object and field, so snake_case wire records become your camelCase domain type and back.',
+            'Rename keys and convert each field with Struct and Field, so snake_case wire records become your camelCase domain type and back.',
         kind: 'guide',
     },
     {
@@ -203,7 +210,7 @@ export const pages: Page[] = [
         path: 'recipes/collapse-checkboxes-to-an-enum',
         title: 'Collapse several wire flags into one domain value',
         description:
-            'Fold a set of booleans — a checkbox group — into a single enum with group, mapping N wire keys to one domain field.',
+            'Fold a set of booleans — a checkbox group — into a single enum with Group, mapping N wire keys to one domain field.',
         kind: 'guide',
     },
     {
@@ -298,7 +305,7 @@ export const pages: Page[] = [
     // ── Guides · Enumerations ───────────────────────────────────────────────
     {
         path: 'guides/enums/enum',
-        title: 'enum_',
+        title: 'Enum',
         description:
             'Map a set of discrete keys to values, entries-first, and get decode and encode from one declaration.',
         kind: 'guide',
@@ -328,35 +335,35 @@ export const pages: Page[] = [
     // ── Guides · Composites ─────────────────────────────────────────────────
     {
         path: 'guides/composites/object',
-        title: 'object',
+        title: 'Struct',
         description:
             'Map a struct field-by-field, with per-field rename and codec, and get the accumulate-all-errors validate door.',
         kind: 'guide',
     },
     {
         path: 'guides/composites/field',
-        title: 'field',
+        title: 'Field',
         description:
             'Declare one wire↔domain field, rename its key, and drop it from encode output with encode: "omit" or "omit-if".',
         kind: 'guide',
     },
     {
         path: 'guides/composites/group',
-        title: 'group',
+        title: 'Group',
         description:
             'Collapse N wire fields into one domain field — a checkbox group into a single enum.',
         kind: 'guide',
     },
     {
         path: 'guides/composites/array-and-tuple',
-        title: 'array & tuple',
+        title: 'List & Tuple',
         description:
             'Map homogeneous lists and fixed-length heterogeneous lists, with per-index paths threaded into errors.',
         kind: 'guide',
     },
     {
         path: 'guides/composites/optional',
-        title: 'optional',
+        title: 'Nullable',
         description:
             'Normalize a null or absent wire value to undefined on decode, and undefined back to null on encode.',
         kind: 'guide',
@@ -406,7 +413,7 @@ export const pages: Page[] = [
         path: 'guides/context/bind',
         title: '.bind()',
         description:
-            'Erase a codec’s context by binding it once, yielding an ordinary codec you can drop into object, array, and pipe.',
+            'Erase a codec’s context by binding it once, yielding an ordinary codec you can drop into Struct, List, and pipe.',
         kind: 'guide',
     },
 
@@ -440,7 +447,7 @@ export const pages: Page[] = [
         path: 'reference/constructors',
         title: 'Constructors',
         description:
-            'Signatures for iso, lossy, partial, enum_, object, field, group, array, tuple, optional, and pipe.',
+            'Signatures for iso, lossy, partial, Enum, Struct, Field, Group, List, Tuple, Nullable, and pipe.',
         kind: 'reference',
     },
     {

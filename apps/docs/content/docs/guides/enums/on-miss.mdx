@@ -11,10 +11,10 @@ the map doesn't list.
 ## Example
 
 ```ts twoslash
-import { enum_ } from 'bimorph';
+import { Enum } from 'bimorph';
 
 // A default keeps decode total: an unmapped wire falls back instead of throwing.
-const Status = enum_([[1, 'active'], [0, 'inactive']], {
+const Status = Enum([[1, 'active'], [0, 'inactive']], {
     onMiss: { default: 'inactive' },
 });
 
@@ -33,9 +33,9 @@ const label = Status.decode(9);
   the domain value, or calls `raise()` to fail with the standard error:
 
 ```ts twoslash
-import { enum_ } from 'bimorph';
+import { Enum } from 'bimorph';
 
-const Status = enum_([[1, 'active'], [0, 'inactive']], {
+const Status = Enum([[1, 'active'], [0, 'inactive']], {
     onMiss: (c): 'active' | 'inactive' => (c.input > 1 ? 'active' : c.raise()),
 });
 ```
@@ -56,7 +56,7 @@ primitive the other two desugar to.
 
 <Cards>
     <Card title="The resolver" href="/docs/guides/recovery/resolver" />
-    <Card title="enum_" href="/docs/guides/enums/enum" />
+    <Card title="Enum" href="/docs/guides/enums/enum" />
     <Card title="onCollision" href="/docs/guides/enums/on-collision" />
     <Card title="Error: miss" href="/docs/errors/miss" />
 </Cards>

@@ -6,8 +6,8 @@ that are currently false → build the escape-hatch spine → add the accumulati
 collection story → close the remaining combinators → give `lossy` teeth.**
 
 Each item lands the way the repo already proves its claims: a ` ```ts twoslash ` block
-in `docs/examples/` (so `npm run check:examples` gates it) plus a runtime probe for the
-behavioural ones.
+in the docs site (`apps/docs`, gated by twoslash at build time) plus a runtime probe
+for the behavioural ones.
 
 Legend: **S/M/L** = rough size. "Unlocks" = scenario IDs from `SCENARIOS.md`.
 
@@ -15,27 +15,27 @@ Legend: **S/M/L** = rough size. "Unlocks" = scenario IDs from `SCENARIOS.md`.
 
 ## Status: ✅ all 9 items closed
 
-Every gap below is implemented, type-gated (`docs/examples/*.mdx` via
-`npm run check:examples`) and runtime-gated (`npm run check:runtime`).
+Every gap below is implemented, type-gated (twoslash in `apps/docs`, checked by the
+docs build) and runtime-gated (`npm run check:runtime`).
 
 | # | Item | Gate |
 |---|------|------|
 | P0 #1 | path threading | runtime: `address.city`, `[i]`, encode-side |
-| P0 #2 | `pipe` over `CodecFull` (alias narrowing survives) | [05-pipe](examples/05-pipe.mdx) |
-| P1 #3 | resolver (`onMiss`/`onCollision`, widened input, `ambiguous`) | [08-resolver](examples/08-resolver.mdx) |
-| P2 #4 | `array` / `tuple` | [06](examples/06-collections-and-tools.mdx) |
-| P2 #5 | `validate` + `ErrorTree` (composites only) | [07-validate](examples/07-validate.mdx) |
-| P3 #6 | `group` (N↔1) | [09-group](examples/09-group.mdx) |
-| P3 #7 | `optional` | [06](examples/06-collections-and-tools.mdx) |
-| P3 #8 | `field` `omit-if` | [06](examples/06-collections-and-tools.mdx) |
-| P4 #9 | `assertRoundTrip` | [06](examples/06-collections-and-tools.mdx) |
+| P0 #2 | `pipe` over `CodecFull` (alias narrowing survives) | [guide: pipe](../apps/docs/content/docs/guides/composition/pipe.mdx) |
+| P1 #3 | resolver (`onMiss`/`onCollision`, widened input, `ambiguous`) | [guide: resolver](../apps/docs/content/docs/guides/recovery/resolver.mdx) |
+| P2 #4 | `List` / `Tuple` | [guide: array & tuple](../apps/docs/content/docs/guides/composites/array-and-tuple.mdx) |
+| P2 #5 | `validate` + `ErrorTree` (composites only) | [guide: validate](../apps/docs/content/docs/guides/doors/validate.mdx) |
+| P3 #6 | `Group` (N↔1) | [guide: group](../apps/docs/content/docs/guides/composites/group.mdx) |
+| P3 #7 | `Nullable` | [guide: optional](../apps/docs/content/docs/guides/composites/optional.mdx) |
+| P3 #8 | `Field` `omit-if` | [guide: field](../apps/docs/content/docs/guides/composites/field.mdx) |
+| P4 #9 | `assertRoundTrip` | [guide: assertRoundTrip](../apps/docs/content/docs/guides/testing/assert-round-trip.mdx) |
 
-Gates now: **`typecheck` clean · `check:examples` 33/33 · `check:runtime` 30 checks · 9 docs pages.**
+Gates now: **`typecheck` clean · `apps/docs` build (twoslash) green · `check:runtime` 30 checks.**
 
 **Two caveats discovered during implementation (documented, not silently dropped):**
 - **`pipe` into a wire-asymmetric `b`** (e.g. an `encode:"omit"` object) stays a type
   error rather than a silent collapse — model that boundary as an explicitly asymmetric
-  codec, or nest via `object`. The alias case (asymmetric `a`) is fully supported.
+  codec, or nest via `Struct`. The alias case (asymmetric `a`) is fully supported.
 - **A computed-literal `onMiss` resolver return needs a return annotation** (a TS
   overload-resolution limitation). The `{ default }` preset and `raise()`-style
   resolvers are clean bare; annotated resolvers cover the rest.
@@ -49,12 +49,12 @@ The sections below are the original punch list, kept as the design/evidence trai
 Bugs in features that already ship and are advertised as working. Verified against the
 compiler / runtime, not asserted.
 
-### 1. Path threading in `object` (then reused by `array` / `pipe`)  — S
+### 1. Path threading in `Struct` (then reused by `List` / `pipe`)  — S
 
 - **Repairs:** P3 / DESIGN §2.3 — "the error always carries a path." Today a nested
   field failure yields `path: ""` and a message that never names the field. This is
   Open Question #1.
-- **What:** move the `try/catch` *inside* the per-field loop in `object`'s decode /
+- **What:** move the `try/catch` *inside* the per-field loop in `Struct`'s decode /
   encode; on a child failure, prefix the field's **domain key** onto the child's path
   (`key` + `"." + child.path`, or `key + child.path` when the child path starts with
   `[`). Re-throw as a `BimorphError` so an outer composite can prefix again. Add a
@@ -68,7 +68,7 @@ compiler / runtime, not asserted.
 ### 2. `pipe` over `CodecFull` (kill the asymmetric collapse)  — M
 
 - **Repairs:** the alias-narrowing guarantee (§5.2). `pipe` is typed over the
-  *symmetric* `Codec<M,B>`, so composing an aliased `enum_` (wide `BIn`, narrow `BOut`)
+  *symmetric* `Codec<M,B>`, so composing an aliased `Enum` (wide `BIn`, narrow `BOut`)
   unifies both sides and picks the **wide** side — `pipe(Status, Display).encode(...)`
   is typed to possibly return the legacy alias the feature swore it never emits.
 - **What:** retype as `pipe(a: CodecFull<M, BIn, BOut, …>, b: CodecFull<A, M, M, …>)`,
@@ -77,7 +77,7 @@ compiler / runtime, not asserted.
   symmetric. Thread `path` through the mid (no new segment added by composition).
 - **Deferred (documented, not silent):** piping *into* a wire-asymmetric codec (e.g. an
   `encode:"omit"` object — the B6 case) stays a type error rather than a silent
-  collapse; model that boundary as an explicitly asymmetric codec or nest via `object`.
+  collapse; model that boundary as an explicitly asymmetric codec or nest via `Struct`.
 - **Done-when:** `pipe(AliasedEnum, Display).encode(...)` is typed to the **narrow**
   union; an MDX example asserts narrow-out + alias-in survive composition.
 
@@ -93,23 +93,23 @@ compiler / runtime, not asserted.
 - **What:** `Resolver` / `ResolveContext` types (typed `raise()`, `candidates`, and the
   load-bearing `ctx` field); preset sugar
   `onMiss: "throw" | { default } | "passthrough" | Resolver`;
-  `onCollision: "throw" | "first-wins" | "last-wins" | fn`; wire into `enum_` decode /
+  `onCollision: "throw" | "first-wins" | "last-wins" | fn`; wire into `Enum` decode /
   encode; start emitting the `"ambiguous"` / `"lossy"` `DecodeError` codes that are
   declared but never produced.
 - **Unlocks:** B3, C1, C3, D1, D3, E1, E5.
-- **Done-when:** `enum_(…, { onMiss: { default: X } }).decode(unknown)` returns `X`; a
+- **Done-when:** `Enum(…, { onMiss: { default: X } }).decode(unknown)` returns `X`; a
   resolver reading `ctx` disambiguates E5 (`¥` → JPY / CNY).
 
 ---
 
 ## P2 — Accumulation door + collections (the untrusted-data story)
 
-### 4. `array` / `tuple`  — M
+### 4. `List` / `Tuple`  — M
 
 - **Fills:** zero collection support today — every real DTO has arrays.
-- **What:** `array(codec)` maps element-wise with per-**index** path segments (`"[3]"`);
-  `tuple(...codecs)` fixed positions; both join fidelity (weakest) and intersect `Ctx`,
-  as `object` does.
+- **What:** `List(codec)` maps element-wise with per-**index** path segments (`"[3]"`);
+  `Tuple(...codecs)` fixed positions; both join fidelity (weakest) and intersect `Ctx`,
+  as `Struct` does.
 - **Deps:** #1 (path segments). **Unlocks:** B1 (`tags`), D4 (CSV rows), E2.
 - **Done-when:** decoding a bad element reports `path: "[2].field"`.
 
@@ -117,7 +117,7 @@ compiler / runtime, not asserted.
 
 - **Fills:** the DOGFOOD scorecard's "solid, high-value" feature that does not exist.
 - **What:** add `validate(b): Result<A, ErrorTree>` to **composites only**
-  (`object` / `array` / `tuple`, never leaves), where `ErrorTree` is the path-keyed flat
+  (`Struct` / `List` / `Tuple`, never leaves), where `ErrorTree` is the path-keyed flat
   map (`"shipping.postalCode"`) of §2.2. Decode-only for now (skip `validateEncode`).
 - **Deps:** #1 (paths) + #4 (per-index accumulation).
 - **Unlocks:** A5, B2, D4, C5, E2.
@@ -127,21 +127,21 @@ compiler / runtime, not asserted.
 
 ## P3 — Close the remaining combinators
 
-### 6. `group` (N↔1)  — M
+### 6. `Group` (N↔1)  — M
 
 - **Fills:** Gap 5 / B4 — three checkbox wire fields collapse to one domain enum;
-  `field(wireKey, codec)` is 1:1 and cannot express it.
-- **Sub-decision:** either `object` accepts a multi-`wireKey` field, or a standalone
-  `group(wireKeys[], codec)`; `WireIn` / `WireOut` key-derivation must consume multiple
+  `Field(wireKey, codec)` is 1:1 and cannot express it.
+- **Sub-decision:** either `Struct` accepts a multi-`wireKey` field, or a standalone
+  `Group(wireKeys[], codec)`; `WireIn` / `WireOut` key-derivation must consume multiple
   wire keys for one domain key.
 - **Unlocks:** B4.
 
-### 7. `optional(codec)`  — S
+### 7. `Nullable(codec)`  — S
 
 - `null` / absent ↔ `undefined` normalisation. **Unlocks:** A3 (the regression anchor)
   as a real combinator instead of a hand-rolled `iso`.
 
-### 8. `field(…, { encode: "omit-if", when })`  — S
+### 8. `Field(…, { encode: "omit-if", when })`  — S
 
 - Conditional omit; the field stays present (optional) in the `WireOut` type, unlike
   unconditional `omit` which drops it. **Unlocks:** B1 (drop `page=1`).
@@ -162,11 +162,11 @@ compiler / runtime, not asserted.
 ## Dependency spine
 
 ```
-#1 path ──┬──► #4 array/tuple ──► #5 validate
+#1 path ──┬──► #4 List/Tuple ──► #5 validate
           └──────────────────────► #5
 #2 pipe (independent; do alongside #1)
 #3 resolver (independent; large)
-#6 group   #7 optional   #8 omit-if   #9 assertRoundTrip   (independent leaves)
+#6 Group   #7 Nullable   #8 omit-if   #9 assertRoundTrip   (independent leaves)
 ```
 
 ## Non-goals (explicit)

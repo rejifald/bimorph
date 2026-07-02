@@ -21,9 +21,9 @@ context machinery relies on it to catch a dropped `ctx` or a mismatched wire val
 Confirm the imports resolve and a codec type-checks:
 
 ```ts twoslash
-import { enum_ } from 'bimorph';
+import { Enum } from 'bimorph';
 
-const Status = enum_([
+const Status = Enum([
     [1, 'active'],
     [0, 'inactive'],
 ]);
@@ -41,5 +41,5 @@ something real.
 <Cards>
     <Card title="Quickstart" href="/docs/getting-started/quickstart" />
     <Card title="The codec" href="/docs/concepts/the-codec" />
-    <Card title="Guide: enum_" href="/docs/guides/enums/enum" />
+    <Card title="Guide: Enum" href="/docs/guides/enums/enum" />
 </Cards>

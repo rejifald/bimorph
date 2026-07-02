@@ -1,9 +1,9 @@
 ---
-title: 'group'
+title: 'Group'
 description: 'Collapse N wire fields into one domain field — a checkbox group into a single enum.'
 ---
 
-Reach for `group` inside an [`object`](/docs/guides/composites/object) when several
+Reach for `Group` inside an [`Struct`](/docs/guides/composites/object) when several
 wire fields collectively encode _one_ domain value — three booleans that mean one
 `visibility`, a set of checkboxes that mean one enum. It maps N wire keys to a single
 domain field.
@@ -11,7 +11,7 @@ domain field.
 ## Example
 
 ```ts twoslash
-import { object, group, iso } from 'bimorph';
+import { Struct, Group, iso } from 'bimorph';
 
 // [!code fold:start]
 type Visibility = 'public' | 'private' | 'unlisted';
@@ -21,7 +21,7 @@ type Flags = {
     is_unlisted: boolean;
 };
 // [!code fold:end]
-// the inner codec maps the sub-object of grouped wire keys ↔ one domain value
+// the inner codec maps the sub-Struct of grouped wire keys ↔ one domain value
 const visibility = iso<Visibility, Flags>({
     decode: (w) =>
         w.is_public ? 'public' : w.is_private ? 'private' : 'unlisted',
@@ -32,8 +32,8 @@ const visibility = iso<Visibility, Flags>({
     }),
 });
 
-const Post = object({
-    visibility: group(['is_public', 'is_private', 'is_unlisted'], visibility),
+const Post = Struct({
+    visibility: Group(['is_public', 'is_private', 'is_unlisted'], visibility),
 });
 
 const domain = Post.decode({ is_public: true, is_private: false, is_unlisted: false });
@@ -42,7 +42,7 @@ const domain = Post.decode({ is_public: true, is_private: false, is_unlisted: fa
 
 ## Options
 
-`group(wireKeys, codec)` sits in an `object` like a `field`, but instead of one wire
+`Group(wireKeys, codec)` sits in an `Struct` like a `Field`, but instead of one wire
 key it owns **all** the keys in `wireKeys`, and its `codec` maps the sub-object of
 those keys ↔ the single domain value. The grouped keys all contribute to the
 composite's wire shape; the one domain key is what your app sees.
@@ -53,17 +53,17 @@ that returns a `Result`, or give it an [`onMiss`](/docs/guides/enums/on-miss)
 resolver.
 
 <Callout type="warn">
-    **Anti-pattern:** don't reach for `group` when the wire fields are actually
+    **Anti-pattern:** don't reach for `Group` when the wire fields are actually
     independent domain values — three unrelated booleans that stay three booleans.
-    `group` is specifically for a set that _together_ encodes one value; independent
-    fields are just separate [`field`](/docs/guides/composites/field)s.
+    `Group` is specifically for a set that _together_ encodes one value; independent
+    fields are just separate [`Field`](/docs/guides/composites/field)s.
 </Callout>
 
 ## See also
 
 <Cards>
-    <Card title="object" href="/docs/guides/composites/object" />
-    <Card title="field" href="/docs/guides/composites/field" />
+    <Card title="Struct" href="/docs/guides/composites/object" />
+    <Card title="Field" href="/docs/guides/composites/field" />
     <Card
         title="Collapse checkboxes to an enum"
         href="/docs/recipes/collapse-checkboxes-to-an-enum"

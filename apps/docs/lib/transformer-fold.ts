@@ -16,9 +16,9 @@ type HastNode = HastElement['children'][number];
  *
  * ```ts twoslash
  * // [!code fold:start]
- * import { enum_ } from 'bimorph';
+ * import { Enum } from 'bimorph';
  * // [!code fold:end]
- * const Status = enum_([[1, 'active'], [0, 'inactive']]);
+ * const Status = Enum([[1, 'active'], [0, 'inactive']]);
  * ```
  *
  * Unlike Twoslash's `// ---cut---`, the folded code stays in the DOM — still

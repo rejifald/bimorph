@@ -13,7 +13,7 @@ file is the evidence trail.
 
 ## Where it just works (validates the design)
 
-**A3 nullable↔optional, D3 gRPC enum, E2 bitmask (simple):** clean `iso`/`enum_`.
+**A3 nullable↔optional, D3 gRPC enum, E2 bitmask (simple):** clean `iso`/`Enum`.
 Baseline holds.
 
 **A4 / B6 / D5 read-only fields:** `encode: "omit"` is exactly right, and having the
@@ -50,7 +50,7 @@ first-class `aliases` declaration that (a) decodes many→one, (b) is never emit
 undeclared dupe still throws.
 
 ```ts
-const Status = enum_(
+const Status = Enum(
   [[1, "active"], [0, "inactive"]],
   { aliases: [["PENDING", "inactive"], ["AWAITING_PAYMENT", "inactive"]] },
 );
@@ -126,14 +126,14 @@ cache-miss fallback — `decodeOr(slug, titleCase(slug))` expresses that in one 
 
 ---
 
-## Gap 5: N↔M field mapping (`object`/`field` isn't enough)
+## Gap 5: N↔M field mapping (`Struct`/`Field` isn't enough)
 
 **Scenario: B4.** Three checkbox fields `{public, private, unlisted}` collapse to one
-enum `visibility`. `field("wireKey", codec)` assumes 1:1. Needed a `group`
+enum `visibility`. `Field("wireKey", codec)` assumes 1:1. Needed a `Group`
 combinator:
 
 ```ts
-const Visibility = group(
+const Visibility = Group(
   ["public", "private", "unlisted"],
   iso<"public"|"private"|"unlisted", Record<string, boolean>>({
     decode: (flags) => onlyTrueKey(flags),          // resolver handles all-false / two-true
@@ -151,7 +151,7 @@ can catch — pure runtime, so the resolver / `validate` door is the only answer
 
 **Scenario: B1.** `page=1` (the default) must be *absent* from the URL, but `page=2`
 present. That's richer than unconditional `encode: "omit"`. Added
-`encode: "omit-if", when: (v) => v === default` to `field`.
+`encode: "omit-if", when: (v) => v === default` to `Field`.
 
 ---
 
@@ -167,7 +167,7 @@ present. That's richer than unconditional `encode: "omit"`. Added
 | collision diagnostic | **needed rework** → aliases (Gap 1) |
 | "define once → both free" | **partly false** → Contextual tier (Gap 2) |
 | guarantee-in-the-type | **expanded** to Iso / Lossy / Partial / Contextual (Gaps 3–4) |
-| 1:1 field mapping | **incomplete** → `group` (Gap 5) |
+| 1:1 field mapping | **incomplete** → `Group` (Gap 5) |
 
 **Bottom line:** the design's *spine* (doors, loud-by-default, resolver, encode-omit,
 guarantee-in-the-type) survived contact with reality. What it was missing were the

@@ -11,10 +11,10 @@ point of failure, with the standard error still one `raise()` away.
 ## Example
 
 ```ts twoslash
-import { enum_ } from 'bimorph';
+import { Enum } from 'bimorph';
 
 // unmapped wires are repaired here — or raise() the standard error for the rest
-const Status = enum_([[1, 'active'], [0, 'inactive']], {
+const Status = Enum([[1, 'active'], [0, 'inactive']], {
     onMiss: (c): 'active' | 'inactive' => (c.input > 1 ? 'active' : c.raise()),
 });
 

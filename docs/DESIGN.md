@@ -1,7 +1,7 @@
 # bimorph — Design
 
 > Status: design phase. Illustrative TypeScript below is a **spec sketch**, not
-> compiling code. Names (`bimorph`, `iso`, `enum_`, doors) are provisional.
+> compiling code. Names (`bimorph`, `iso`, `Enum`, doors) are provisional.
 
 ---
 
@@ -72,11 +72,11 @@ Rules:
 Fail-fast is the default even for `safeDecode` — nesting errors silently is the
 killer we're avoiding (P3). Error *accumulation* (collect every bad field, like a
 form validator) is a **separate door**, and it only exists where more than one thing
-can fail — `object`, `array`, `tuple`. A leaf `iso`/`enum_` has nothing to
+can fail — `Struct`, `List`, `Tuple`. A leaf `iso`/`Enum` has nothing to
 accumulate, so the door isn't on its type at all.
 
 ```ts
-User.decode(dto)      // throws on first bad field, error has a path
+User.decode(dto)      // throws on first bad Field, error has a path
 User.safeDecode(dto)  // Result<User, DecodeError>  — first failure, fail-fast
 User.validate(dto)    // Result<User, ErrorTree>    — accumulate, composite-only
 
@@ -150,8 +150,8 @@ in-memory-only prefs). Declared read-only; the encode output type structurally
 **lacks** them, so a round-trip can't be assumed.
 
 ```ts
-field("created_at", DateIso, { encode: "omit" })
-field("page",       NumberCodec, { encode: "omit-if", when: (v) => v === 1 }) // §5 G6
+Field("created_at", DateIso, { encode: "omit" })
+Field("page",       NumberCodec, { encode: "omit-if", when: (v) => v === 1 }) // §5 G6
 ```
 
 ---
@@ -235,16 +235,16 @@ required and forgetting `ctx` is a compile error. You cannot silently drop conte
    - *`.bind(ctx)`* — returns a context-free `Codec<A,B,void>` when the context is
      stable over many calls (a whole form, one render pass). **This is what makes
      contextual codecs composable**: bind first, then drop the result into
-     `object`/`pipe`/`array` as an ordinary codec.
+     `Struct`/`pipe`/`List` as an ordinary codec.
 
 4. **Composition propagates context by intersection.** A composite holding contextual
    children is itself contextual; one merged bag is passed down and each child reads
    its own fields:
 
    ```ts
-   const Form = object({
-     phone:    field("phone",    PhoneCodec),   // Ctx = { region: string }
-     currency: field("currency", SymbolCodec),  // Ctx = { locale: string }
+   const Form = Struct({
+     phone:    Field("phone",    PhoneCodec),   // Ctx = { region: string }
+     currency: Field("currency", SymbolCodec),  // Ctx = { locale: string }
    });
    // Form: Codec<Domain, Wire, { region: string } & { locale: string }>
    Form.decode(dto, { region: "US", locale: "en-US" });
@@ -276,7 +276,7 @@ fights exactly this legitimate migration pattern. Aliases make it first-class.
 
 ### 5.1 Precise semantics (two indexes)
 
-An `enum_` maintains two internal indexes, and every rule falls out of keeping both
+An `Enum` maintains two internal indexes, and every rule falls out of keeping both
 functional:
 
 - **decode index** `wire → domain` — populated by primary entries **and** aliases.
@@ -297,7 +297,7 @@ Rules:
 ### 5.2 API & the type-level payoff
 
 ```ts
-const Flag = enum_(
+const Flag = Enum(
   [["search_ui_v2", FeatureFlag.SearchUiV2]],      // primary = canonical wire
   {
     aliases: [
@@ -350,12 +350,12 @@ P2/P3).
 | Combinator | Purpose | Notes |
 |---|---|---|
 | `iso({decode, encode})` | leaf, two pure inverse fns | tier inferred/annotated |
-| `enum_(entries, opts)` | discrete key↔value map | entries, not object literal (numeric-key stringification footgun); `aliases`, `onCollision`, `onMiss` |
-| `object({ key: field(...) })` | struct with rename + per-field codec | exposes `validate`; encode output type drops `encode:"omit"` fields |
-| `field(wireKey, codec, opts)` | 1:1 field wire↔domain | `encode: "omit" \| "omit-if"` |
-| `group(wireKeys[], codec)` | **N wire fields ↔ 1 domain field** | checkbox-group↔enum; §DOGFOOD G5 |
-| `array(codec)` / `tuple(...)` | collections | accumulate per-index in `validate` |
-| `optional(codec)` | `null`/absent handling | `null`↔`undefined` normalization |
+| `Enum(entries, opts)` | discrete key↔value map | entries, not object literal (numeric-key stringification footgun); `aliases`, `onCollision`, `onMiss` |
+| `Struct({ key: Field(...) })` | struct with rename + per-field codec | exposes `validate`; encode output type drops `encode:"omit"` fields |
+| `Field(wireKey, codec, opts)` | 1:1 field wire↔domain | `encode: "omit" \| "omit-if"` |
+| `Group(wireKeys[], codec)` | **N wire fields ↔ 1 domain field** | checkbox-group↔enum; §DOGFOOD G5 |
+| `List(codec)` / `Tuple(...)` | collections | accumulate per-index in `validate` |
+| `Nullable(codec)` | `null`/absent handling | `null`↔`undefined` normalization |
 | `pipe(a, b, …)` | compose codecs | preserves the **weakest** fidelity tier (Iso∘Lossy = Lossy), **intersects** child `Ctx` (§4.3), and threads `path` through nested errors |
 
 ---

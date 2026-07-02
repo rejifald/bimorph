@@ -1,20 +1,20 @@
 ---
 title: 'Reverse a lookup table without the boilerplate'
-description: 'Replace a status-code object and its hand-written reverse lookup with one enum_ that decodes and encodes both ways.'
+description: 'Replace a status-code object and its hand-written reverse lookup with one Enum that decodes and encodes both ways.'
 ---
 
 You have a status-code object and keep hand-writing its reverse with
 `Object.entries(...).find(...)`. Replace both halves with one
-[`enum_`](/docs/guides/enums/enum): decode is the forward lookup, encode is the
+[`Enum`](/docs/guides/enums/enum): decode is the forward lookup, encode is the
 reverse, and neither can drift from the other.
 
 ## Example
 
 ```ts twoslash
-import { enum_ } from 'bimorph';
+import { Enum } from 'bimorph';
 
-// one declaration replaces the object AND its Object.entries(...).find(...) reverse
-const Status = enum_([
+// one declaration replaces the Struct AND its Object.entries(...).find(...) reverse
+const Status = Enum([
     [1, 'active'],
     [0, 'inactive'],
 ]);
@@ -33,7 +33,7 @@ reverse gives you.
 ## See also
 
 <Cards>
-    <Card title="enum_" href="/docs/guides/enums/enum" />
+    <Card title="Enum" href="/docs/guides/enums/enum" />
     <Card title="The codec" href="/docs/concepts/the-codec" />
     <Card
         title="Accept legacy values"

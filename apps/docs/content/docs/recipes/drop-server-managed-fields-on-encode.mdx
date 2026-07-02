@@ -12,16 +12,16 @@ owns.
 ## Example
 
 ```ts twoslash
-import { object, field, iso } from 'bimorph';
+import { Struct, Field, iso } from 'bimorph';
 
 // [!code fold:start]
 const num = iso<number, number>({ decode: (n) => n, encode: (n) => n });
 const str = iso<string, string>({ decode: (s) => s, encode: (s) => s });
 // [!code fold:end]
-const User = object({
-    id: field('user_id', num, { encode: 'omit' }),
-    name: field('full_name', str),
-    createdAt: field('created_at', str, { encode: 'omit' }),
+const User = Struct({
+    id: Field('user_id', num, { encode: 'omit' }),
+    name: Field('full_name', str),
+    createdAt: Field('created_at', str, { encode: 'omit' }),
 });
 
 // the encode output type has neither user_id nor created_at
@@ -36,8 +36,8 @@ accidentally send a read-only field back.
 ## See also
 
 <Cards>
-    <Card title="field" href="/docs/guides/composites/field" />
-    <Card title="object" href="/docs/guides/composites/object" />
+    <Card title="Field" href="/docs/guides/composites/field" />
+    <Card title="Struct" href="/docs/guides/composites/object" />
     <Card
         title="Map a wire DTO to your domain"
         href="/docs/recipes/map-a-dto-to-your-domain"

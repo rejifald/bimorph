@@ -1,25 +1,25 @@
 ---
 title: 'Map a wire DTO to your domain object'
-description: 'Rename keys and convert each field with object and field, so snake_case wire records become your camelCase domain type and back.'
+description: 'Rename keys and convert each field with Struct and Field, so snake_case wire records become your camelCase domain type and back.'
 ---
 
 A wire DTO uses `snake_case` keys and your domain type uses `camelCase`. Map the two
-with [`object`](/docs/guides/composites/object) and
-[`field`](/docs/guides/composites/field): each `field` names the wire key it reads and
+with [`Struct`](/docs/guides/composites/object) and
+[`Field`](/docs/guides/composites/field): each `Field` names the wire key it reads and
 the codec that converts it, so both directions come from one declaration.
 
 ## Example
 
 ```ts twoslash
-import { object, field, iso } from 'bimorph';
+import { Struct, Field, iso } from 'bimorph';
 
 // [!code fold:start]
 const num = iso<number, number>({ decode: (n) => n, encode: (n) => n });
 const str = iso<string, string>({ decode: (s) => s, encode: (s) => s });
 // [!code fold:end]
-const User = object({
-    id: field('user_id', num),
-    name: field('full_name', str),
+const User = Struct({
+    id: Field('user_id', num),
+    name: Field('full_name', str),
 });
 
 const user = User.decode({ user_id: 7, full_name: 'Ada' });
@@ -31,14 +31,14 @@ const dto = User.encode({ id: 7, name: 'Ada' });
 
 `decode` produces your domain shape with renamed keys; `encode` reconstructs the wire
 DTO. Swap the identity leaves here for real per-field codecs — an
-[`enum_`](/docs/guides/enums/enum) for a status, a [date `iso`](/docs/guides/leaves/iso)
+[`Enum`](/docs/guides/enums/enum) for a status, a [date `iso`](/docs/guides/leaves/iso)
 for a timestamp — and each field converts as it renames.
 
 ## See also
 
 <Cards>
-    <Card title="object" href="/docs/guides/composites/object" />
-    <Card title="field" href="/docs/guides/composites/field" />
+    <Card title="Struct" href="/docs/guides/composites/object" />
+    <Card title="Field" href="/docs/guides/composites/field" />
     <Card
         title="Keep server-managed fields out"
         href="/docs/recipes/drop-server-managed-fields-on-encode"

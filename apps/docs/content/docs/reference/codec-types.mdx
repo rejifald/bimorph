@@ -30,7 +30,7 @@ The four type parameters:
 
 `CodecFull<A, BIn, BOut, Ctx, F>` splits the wire type into a decode **input**
 (`BIn`) and an encode **output** (`BOut`). That split is what expresses
-[alias-narrowing](/docs/concepts/aliases): an aliased `enum_` accepts a wide `BIn`
+[alias-narrowing](/docs/concepts/aliases): an aliased `Enum` accepts a wide `BIn`
 and emits a narrow `BOut`. `Codec<A, B, Ctx, F>` is exactly `CodecFull<A, B, B, Ctx, F>`.
 
 Which throwing doors a `CodecFull` exposes depends on `F`: a `'partial'` codec drops

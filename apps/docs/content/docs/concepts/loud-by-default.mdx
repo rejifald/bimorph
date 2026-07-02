@@ -20,16 +20,16 @@ door you reach for on purpose.
 points at exactly the field that failed, not just "something in this object".
 
 ```ts twoslash
-import { enum_, BimorphError } from 'bimorph';
+import { Enum, BimorphError } from 'bimorph';
 
-const Status = enum_([[1, 'active'], [0, 'inactive']], { onMiss: 'throw' });
+const Status = Enum([[1, 'active'], [0, 'inactive']], { onMiss: 'throw' });
 
 try {
     Status.decode(9);
 } catch (e) {
     if (e instanceof BimorphError) {
         e.detail.code; // 'miss'
-        e.detail.path; // '' here; 'address.city' when the miss is inside an object
+        e.detail.path; // '' here; 'address.city' when the miss is inside an Struct
     }
 }
 ```

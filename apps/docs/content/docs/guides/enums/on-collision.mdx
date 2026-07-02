@@ -11,11 +11,11 @@ its own.
 ## Example
 
 ```ts twoslash
-import { enum_ } from 'bimorph';
+import { Enum } from 'bimorph';
 
 // 1 and 2 both decode to 'active'. first-wins makes 1 the canonical encode target;
 // 2 still decodes fine — it becomes an implicit alias.
-const Status = enum_(
+const Status = Enum(
     [
         [1, 'active'],
         [2, 'active'],
@@ -53,7 +53,7 @@ discarded — it still decodes, exactly like an [alias](/docs/guides/enums/alias
 ## See also
 
 <Cards>
-    <Card title="enum_" href="/docs/guides/enums/enum" />
+    <Card title="Enum" href="/docs/guides/enums/enum" />
     <Card title="Aliases" href="/docs/guides/enums/aliases" />
     <Card title="Intentional many-to-one" href="/docs/concepts/aliases" />
     <Card title="Error: collision" href="/docs/errors/collision" />

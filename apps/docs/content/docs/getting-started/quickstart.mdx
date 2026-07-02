@@ -15,16 +15,16 @@ bimorph
 
 ## Define a codec
 
-Reach for `enum_` when a fixed set of wire values maps to a fixed set of domain
+Reach for `Enum` when a fixed set of wire values maps to a fixed set of domain
 values — the status codes, kinds, and flags an API sends as ints or short
 strings. Pass the pairs `[wire, domain]`; the setup imports fold away so the
 block opens on the mapping itself.
 
 ```ts twoslash
 // [!code fold:start]
-import { enum_ } from 'bimorph';
+import { Enum } from 'bimorph';
 // [!code fold:end]
-const Status = enum_([
+const Status = Enum([
     [1, 'active'],
     [0, 'inactive'],
 ]);
@@ -38,9 +38,9 @@ narrowed to exactly the values in the mapping, not a loose `string` or `number`.
 
 ```ts twoslash
 // [!code fold:start]
-import { enum_ } from 'bimorph';
+import { Enum } from 'bimorph';
 
-const Status = enum_([
+const Status = Enum([
     [1, 'active'],
     [0, 'inactive'],
 ]);
@@ -62,11 +62,11 @@ values outside the map on purpose, you widen the input with
 A codec is one primitive with a few axes. What each door returns on failure is
 [Doors, not flags](/docs/concepts/doors); whether a mapping promises a clean
 round-trip is a [fidelity tier](/docs/concepts/fidelity-tiers); and mapping a
-whole record field-by-field is [`object`](/docs/guides/composites/object).
+whole record field-by-field is [`Struct`](/docs/guides/composites/object).
 
 <Cards>
     <Card title="The codec" href="/docs/concepts/the-codec" />
-    <Card title="enum_" href="/docs/guides/enums/enum" />
+    <Card title="Enum" href="/docs/guides/enums/enum" />
     <Card
         title="Reverse a lookup table"
         href="/docs/recipes/reverse-a-lookup-table"

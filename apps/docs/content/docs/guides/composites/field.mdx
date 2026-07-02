@@ -1,24 +1,24 @@
 ---
-title: 'field'
+title: 'Field'
 description: 'Declare one wire↔domain field, rename its key, and drop it from encode output with encode: "omit" or "omit-if".'
 ---
 
-Reach for `field` inside an [`object`](/docs/guides/composites/object) to declare one
+Reach for `Field` inside an [`Struct`](/docs/guides/composites/object) to declare one
 wire-key ↔ domain-key pairing: which wire key it reads, the codec that converts it,
 and whether it participates in encode output.
 
 ## Example
 
 ```ts twoslash
-import { object, field, iso } from 'bimorph';
+import { Struct, Field, iso } from 'bimorph';
 
 // [!code fold:start]
 const str = iso<string, string>({ decode: (s) => s, encode: (s) => s });
 // [!code fold:end]
-const User = object({
-    name: field('full_name', str),
+const User = Struct({
+    name: Field('full_name', str),
     // created_at flows in on decode but is dropped from encode output entirely
-    createdAt: field('created_at', str, { encode: 'omit' }),
+    createdAt: Field('created_at', str, { encode: 'omit' }),
 });
 
 const wire = User.encode({ name: 'Ada', createdAt: '2020-01-01' });
@@ -30,7 +30,7 @@ absent from the wire you send back.
 
 ## Options
 
-`field(wireKey, codec)` is the plain form: read `wireKey`, convert with `codec`.
+`Field(wireKey, codec)` is the plain form: read `wireKey`, convert with `codec`.
 The third argument controls encode participation:
 
 - **`{ encode: 'omit' }`** — the field flows in on decode but never comes back out.
@@ -41,13 +41,13 @@ The third argument controls encode participation:
   defaults, like a `page=1` that clutters a URL.
 
 ```ts twoslash
-import { field, iso } from 'bimorph';
+import { Field, iso } from 'bimorph';
 
 // [!code fold:start]
 const num = iso<number, number>({ decode: (n) => n, encode: (n) => n });
 // [!code fold:end]
-// drop page=1 defaults from the wire; the field stays optional in the output
-const page = field('page', num, { encode: 'omit-if', when: (p) => p === 1 });
+// drop page=1 defaults from the wire; the Field stays Nullable in the output
+const page = Field('page', num, { encode: 'omit-if', when: (p) => p === 1 });
 ```
 
 <Callout type="warn">
@@ -60,8 +60,8 @@ const page = field('page', num, { encode: 'omit-if', when: (p) => p === 1 });
 ## See also
 
 <Cards>
-    <Card title="object" href="/docs/guides/composites/object" />
-    <Card title="group" href="/docs/guides/composites/group" />
+    <Card title="Struct" href="/docs/guides/composites/object" />
+    <Card title="Group" href="/docs/guides/composites/group" />
     <Card
         title="Keep server-managed fields out"
         href="/docs/recipes/drop-server-managed-fields-on-encode"

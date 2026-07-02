@@ -19,6 +19,9 @@ Design phase + a **typechecked prototype** proving the load-bearing type machine
 
 Docs:
 
+- [`apps/docs/`](apps/docs) — the full documentation site (Fumadocs + Next.js App
+  Router). Every `ts twoslash` example is type-checked against `src/index.ts` at
+  build time. Run it with `npm run docs`, then open http://localhost:3411.
 - [`docs/DESIGN.md`](docs/DESIGN.md) — principles, contracts, and the API surface.
 - [`docs/SCENARIOS.md`](docs/SCENARIOS.md) — ~28 real-world scenarios gathered to test the design against.
 - [`docs/DOGFOOD.md`](docs/DOGFOOD.md) — the design written against those scenarios, and the gaps it exposed.
@@ -26,25 +29,22 @@ Docs:
 Prototype:
 
 - [`src/index.ts`](src/index.ts) — minimal runtime, but the **real** types: `iso` / `lossy` /
-  `partial` / `enum_` (with aliases) / `object` / `field` / `bind`.
-- [`docs/examples/`](docs/examples) — MDX walkthroughs whose every ` ```ts twoslash `
-  block is type-checked against `src/index.ts`.
+  `partial` / `Enum` (with aliases) / `Struct` / `Field` / `bind`.
 
 ```bash
 npm install
 npm run typecheck        # tsc --noEmit over src/
-npm run check:examples   # twoslash every MDX code block against the real types (CI gate)
-npm run build:docs       # render docs/examples/*.mdx → site/ (Shiki + twoslash hovers)
-npx serve site           # then open the site: interactive type hovers on every snippet
+npm run check:runtime    # runtime-behaviour regression gate over src/
+npm run docs             # run the documentation site (apps/docs) at http://localhost:3411
 ```
 
 What the prototype proves compiles (see the MDX for the assertions):
 
-1. **Alias narrowing** — `enum_` decode accepts the *wide* union (primaries + aliases),
+1. **Alias narrowing** — `Enum` decode accepts the *wide* union (primaries + aliases),
    `encode` returns the *narrow* canonical-only union. A migration cannot emit a legacy spelling.
 2. **Contextual codecs** — a `Ctx` third param whose trailing argument is required
    (`decode(b)` without it is a type error), `.bind(ctx)` erases it back to a plain codec,
-   and `object` **intersects** the contexts of its fields into one merged bag.
+   and `Struct` **intersects** the contexts of its fields into one merged bag.
 3. **`Partial` removes the throwing decode door** at the type level — you're forced to `safeDecode`.
 
 ## The one-line motivation

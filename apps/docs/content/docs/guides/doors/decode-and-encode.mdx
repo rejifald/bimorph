@@ -10,9 +10,9 @@ value directly and throw a path-carrying `BimorphError` on failure.
 ## Example
 
 ```ts twoslash
-import { enum_ } from 'bimorph';
+import { Enum } from 'bimorph';
 
-const Status = enum_([[1, 'active'], [0, 'inactive']]);
+const Status = Enum([[1, 'active'], [0, 'inactive']]);
 
 const label = Status.decode(1);
 //    ^?

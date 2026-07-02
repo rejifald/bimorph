@@ -15,7 +15,7 @@ legitimate migration pattern. You want the old spelling to keep decoding while n
 data is written with the canonical one. Aliases carve out that intent without a
 blanket "turn off the check" flag.
 
-**Two indexes, and every rule falls out of keeping both functional.** An `enum_`
+**Two indexes, and every rule falls out of keeping both functional.** An `Enum`
 holds a decode index (`wire → domain`, populated by primaries **and** aliases) and
 an encode index (`domain → wire`, populated by **primaries only**). An alias is
 therefore decode-only: a permanent, implicit `encode: "omit"` on that spelling.
@@ -24,9 +24,9 @@ The payoff shows up in the type. `decode` accepts the wide union of every spelli
 `encode` returns the narrow, canonical-only union:
 
 ```ts twoslash
-import { enum_ } from 'bimorph';
+import { Enum } from 'bimorph';
 
-const Flag = enum_([['search_v2', 'SearchV2']], {
+const Flag = Enum([['search_v2', 'SearchV2']], {
     aliases: [
         ['new-search', 'SearchV2'],
         ['newSearchUI', 'SearchV2'],
@@ -64,7 +64,7 @@ still throws.
 ## See also
 
 <Cards>
-    <Card title="Guide: enum_" href="/docs/guides/enums/enum" />
+    <Card title="Guide: Enum" href="/docs/guides/enums/enum" />
     <Card title="Guide: Aliases" href="/docs/guides/enums/aliases" />
     <Card title="Guide: onCollision" href="/docs/guides/enums/on-collision" />
     <Card title="The context axis" href="/docs/concepts/context-requirement" />

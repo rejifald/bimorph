@@ -36,7 +36,7 @@ Phone.safeDecode('202-555-0100'); // missing ctx
 **Bind it once, drop the argument.** When the context is stable over many calls — a
 whole form, one render pass — `.bind(ctx)` returns an ordinary, context-free codec.
 That is what makes contextual codecs composable: bind first, then drop the result
-into `object`, `array`, or `pipe` as a plain codec.
+into `Struct`, `List`, or `pipe` as a plain codec.
 
 ```ts twoslash
 // [!code fold:start]
@@ -53,7 +53,7 @@ usPhone.safeDecode('202-555-0100'); // an ordinary codec now — no ctx
 
 ## How it relates
 
-A composite made of contextual children is itself contextual: `object` and `pipe`
+A composite made of contextual children is itself contextual: `Struct` and `pipe`
 **intersect** their children's contexts into one merged bag and pass it down, so
 each child reads its own fields. That merge is why a `Ctx` must be an object type,
 not a bare `string`.
