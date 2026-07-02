@@ -1,7 +1,8 @@
 {
   "name": "bimorph",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "type": "module",
+  "license": "MIT",
   "description": "Bidirectional data mapping for TypeScript — define a mapping once, get decode and encode, with non-invertibility surfaced in the type.",
   "exports": {
     ".": "./src/index.ts"
