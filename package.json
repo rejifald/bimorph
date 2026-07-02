@@ -1,6 +1,6 @@
 {
   "name": "bimorph",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "type": "module",
   "license": "MIT",
   "author": "Oleksandr Zhuravlov",
@@ -23,6 +23,7 @@
   "bugs": "https://github.com/rejifald/bimorph/issues",
   "exports": {
     ".": {
+      "bimorph-source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
@@ -30,7 +31,10 @@
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "files": ["dist"],
+  "files": [
+    "dist",
+    "src"
+  ],
   "workspaces": [
     "apps/*"
   ],
