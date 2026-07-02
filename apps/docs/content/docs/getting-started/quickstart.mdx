@@ -54,8 +54,8 @@ const code = Status.encode('active');
 
 A wire value that isn't in the mapping is a compile error, not a runtime
 surprise — the accepted decode input is exactly the keys you declared. To accept
-values outside the map on purpose, you widen the input with
-[`onMiss`](/docs/guides/enums/on-miss).
+values outside the map on purpose, you widen the input with a
+[`default` or `recover`](/docs/guides/enums/on-miss).
 
 ## Where to go next
 

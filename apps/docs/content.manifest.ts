@@ -217,7 +217,7 @@ export const pages: Page[] = [
         path: 'recipes/recover-unknown-values',
         title: 'Recover from an unmapped value instead of throwing',
         description:
-            'Pass onMiss a default or a resolver so an out-of-map wire value is repaired at the point of failure, with the standard error one raise() away.',
+            'Give an Enum a recover resolver (or a default) so an out-of-map wire value is repaired at the point of failure, with the standard error one raise() away.',
         kind: 'guide',
     },
     {
@@ -319,14 +319,14 @@ export const pages: Page[] = [
     },
     {
         path: 'guides/enums/on-miss',
-        title: 'onMiss',
+        title: 'default & recover',
         description:
-            'Choose what an unmapped wire value does — throw, substitute a default, or run a resolver — and how each choice widens the decode input type.',
+            'Recover an unmapped wire value with a static default or a resolver — and how omitting both keeps the decode input a closed union that rejects a miss at compile time.',
         kind: 'guide',
     },
     {
         path: 'guides/enums/on-collision',
-        title: 'onCollision',
+        title: 'reconcile',
         description:
             'Resolve two primary entries that share a domain value with first-wins, last-wins, a picker, or the loud default throw.',
         kind: 'guide',
@@ -422,7 +422,7 @@ export const pages: Page[] = [
         path: 'guides/recovery/resolver',
         title: 'The resolver',
         description:
-            'The single recovery primitive every onMiss and onCollision preset desugars to — typed to the target, with the context in hand and raise() to give up.',
+            'The single recovery primitive every recover and reconcile preset desugars to — typed to the target, with the context in hand and raise() to give up.',
         kind: 'guide',
     },
 
@@ -461,7 +461,7 @@ export const pages: Page[] = [
         path: 'reference/resolver',
         title: 'Resolver types',
         description:
-            'Resolver, ResolveContext, OnMiss, and OnCollision — the recovery type surface.',
+            'Resolver, ResolveContext, and Reconcile — the recovery type surface, plus the default and recover miss slots.',
         kind: 'reference',
     },
     {
@@ -501,7 +501,7 @@ export const pages: Page[] = [
         path: 'errors/collision',
         title: 'collision',
         description:
-            'Two primary entries shared a domain value, so encode has no single canonical wire to emit — set onCollision or declare an alias.',
+            'Two primary entries shared a domain value, so encode has no single canonical wire to emit — set reconcile or declare an alias.',
         kind: 'error',
         code: 'collision',
     },

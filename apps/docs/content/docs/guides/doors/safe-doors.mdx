@@ -12,7 +12,7 @@ type the throwing door raises — no separate error vocabulary to learn.
 ```ts twoslash
 import { Enum } from 'bimorph';
 
-const Status = Enum([[1, 'active'], [0, 'inactive']], { onMiss: 'throw' });
+const Status = Enum([[1, 'active'], [0, 'inactive']], { recover: 'throw' });
 
 const result = Status.safeDecode(9);
 //    ^?

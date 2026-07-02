@@ -1,52 +1,59 @@
 ---
-title: 'onMiss'
-description: 'Choose what an unmapped wire value does — throw, substitute a default, or run a resolver — and how each choice widens the decode input type.'
+title: 'default & recover'
+description: 'Recover an unmapped wire value with a static default or a resolver — and how omitting both keeps the decode input a closed union that rejects a miss at compile time.'
 ---
 
-Set `onMiss` when a wire value outside the map shouldn't be a hard failure —
-substitute a default or compute a value with a resolver instead of throwing. Any
-`onMiss` also widens the accepted decode input, since the point is to accept values
-the map doesn't list.
+When a wire value falls outside the map, an `Enum` has two recovery slots — a static
+`default` value, or a `recover` resolver — and, if you set neither, it stays strict:
+the decode input is the **closed union** of declared wires, so an unmapped value is a
+_compile_ error, not a runtime one.
 
 ## Example
 
 ```ts twoslash
 import { Enum } from 'bimorph';
 
-// A default keeps decode total: an unmapped wire falls back instead of throwing.
+// A `default` keeps decode total: an unmapped wire falls back instead of throwing.
 const Status = Enum([[1, 'active'], [0, 'inactive']], {
-    onMiss: { default: 'inactive' },
+    default: 'inactive',
 });
 
 const label = Status.decode(9);
 //    ^?
 ```
 
-## Options
+## The choices
 
-`onMiss` takes one of three forms:
+| You write | Decode input | An unmapped wire |
+| --- | --- | --- |
+| _(neither slot)_ | closed union (`0 \| 1`) | **compile error** |
+| `recover: 'throw'` | widened (`number`) | throws at runtime |
+| `recover: (c) => …` | widened (`number`) | runs the resolver |
+| `default: value` | widened (`number`) | returns `value` |
 
-- **`"throw"`** — the default behaviour, stated explicitly. It still widens the
-  input type to the wire's primitive base.
-- **`{ default: value }`** — return `value` for any unmapped wire.
-- **a resolver** — a function that receives the input (and any context) and returns
-  the domain value, or calls `raise()` to fail with the standard error:
+Both `default` and `recover` **widen the decode input** from the closed union of
+declared wires to the wire's primitive base — recovery only makes sense for values
+outside the map. Omitting both keeps the union closed, which is why an unmapped
+literal won't even compile.
+
+`recover` is the dynamic slot: a resolver that receives the input (and any context)
+and returns the domain value, or calls `raise()` to fail with the standard error.
+Its `"throw"` shorthand is sugar for `(c) => c.raise()` — accept the wide input, but
+re-raise on a miss.
 
 ```ts twoslash
 import { Enum } from 'bimorph';
 
 const Status = Enum([[1, 'active'], [0, 'inactive']], {
-    onMiss: (c): 'active' | 'inactive' => (c.input > 1 ? 'active' : c.raise()),
+    recover: (c): 'active' | 'inactive' => (c.input > 1 ? 'active' : c.raise()),
 });
 ```
 
-Every form **widens the decode input** from the closed union of declared wires to
-the wire's primitive base (here, `number`), because recovery only makes sense for
-values outside the map. The [resolver](/docs/guides/recovery/resolver) is the
-primitive the other two desugar to.
+The [resolver](/docs/guides/recovery/resolver) is the primitive `recover` is built on,
+and the `default` value is just its most common shorthand.
 
 <Callout type="warn">
-    **Anti-pattern:** don't use a resolver to pattern-match spellings you already
+    **Anti-pattern:** don't use `recover` to pattern-match spellings you already
     know — `"new-search"`, `"newSearchUI"`. Those are exact, so they're
     [aliases](/docs/guides/enums/aliases): typed, narrowed, and visible in the
     declaration. A resolver is for genuinely computed recovery.
@@ -57,6 +64,6 @@ primitive the other two desugar to.
 <Cards>
     <Card title="The resolver" href="/docs/guides/recovery/resolver" />
     <Card title="Enum" href="/docs/guides/enums/enum" />
-    <Card title="onCollision" href="/docs/guides/enums/on-collision" />
+    <Card title="reconcile" href="/docs/guides/enums/on-collision" />
     <Card title="Error: miss" href="/docs/errors/miss" />
 </Cards>

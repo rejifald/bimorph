@@ -1,10 +1,10 @@
 ---
 title: 'Resolver types'
-description: 'Resolver, ResolveContext, OnMiss, and OnCollision — the recovery type surface.'
+description: 'Resolver, ResolveContext, and Reconcile — the recovery type surface, plus the default and recover miss slots.'
 ---
 
 The types behind recovery: the resolver function, the context it receives, and the
-`onMiss` / `onCollision` presets that desugar to it. The
+`reconcile` presets that desugar to it. The
 [resolver guide](/docs/guides/recovery/resolver) shows them in use.
 
 ## ResolveContext
@@ -26,35 +26,31 @@ import type { Resolver } from 'bimorph';
 type StatusResolver = Resolver<number, 'active' | 'inactive'>;
 ```
 
-## OnMiss
+## Miss recovery: default & recover
 
-`OnMiss<In, Out, Ctx>` is the decode-side miss policy — a union of the preset forms
-and a full resolver:
+Decode-side miss recovery is two `Enum` options, not one type. `default` is a plain
+domain value (`Out`) substituted for any unmapped wire; `recover` is
+`"throw" | Resolver<In, Out, Ctx>`, where `"throw"` is shorthand for a resolver that
+re-raises. Setting either widens the decode input; setting neither keeps it the closed
+union of declared wires. See [default & recover](/docs/guides/enums/on-miss).
 
-```ts twoslash
-import type { OnMiss } from 'bimorph';
+## Reconcile
 
-// "throw" | { default: Out } | Resolver<In, Out, Ctx>
-type StatusOnMiss = OnMiss<number, 'active' | 'inactive'>;
-```
-
-## OnCollision
-
-`OnCollision<Domain>` is the creation-time policy when two primary entries share a
+`Reconcile<Domain>` is the creation-time policy when two primary entries share a
 domain value: `"throw"` (default), `"first-wins"`, `"last-wins"`, or a
 `(domain, wires) => winner` picker.
 
 ```ts twoslash
-import type { OnCollision } from 'bimorph';
+import type { Reconcile } from 'bimorph';
 
-type StatusOnCollision = OnCollision<'active' | 'inactive'>;
+type StatusReconcile = Reconcile<'active' | 'inactive'>;
 ```
 
 ## See also
 
 <Cards>
     <Card title="The resolver" href="/docs/guides/recovery/resolver" />
-    <Card title="onMiss" href="/docs/guides/enums/on-miss" />
-    <Card title="onCollision" href="/docs/guides/enums/on-collision" />
+    <Card title="default & recover" href="/docs/guides/enums/on-miss" />
+    <Card title="reconcile" href="/docs/guides/enums/on-collision" />
     <Card title="Errors & results" href="/docs/reference/errors" />
 </Cards>

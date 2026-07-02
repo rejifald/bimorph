@@ -28,9 +28,9 @@ There are exactly three doors per direction — more would be noise:
 ```ts twoslash
 import { Enum } from 'bimorph';
 
-// onMiss widens the accepted input to `number`, so a value outside the map is a
-// runtime miss the doors can differ on — not a compile error.
-const Status = Enum([[1, 'active'], [0, 'inactive']], { onMiss: 'throw' });
+// recover: 'throw' widens the accepted input to `number`, so a value outside the map
+// is a runtime miss the doors can differ on — not a compile error.
+const Status = Enum([[1, 'active'], [0, 'inactive']], { recover: 'throw' });
 
 Status.decode(9); // throws BimorphError — you assert success
 Status.safeDecode(9); // { ok: false, error } — you handle it

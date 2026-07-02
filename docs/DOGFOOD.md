@@ -25,7 +25,7 @@ place immediately — "collect every bad field in the CSV / form / DTO" is a rea
 frequent need, and keeping it separate from fail-fast `decode` (P2/P3) is clearly
 correct once you see D4 (accumulate per-row across a whole file).
 
-**D3 unknown enum variant, B3 missing id:** `onMiss` resolver + `safeDecode` handle
+**D3 unknown enum variant, B3 missing id:** `recover` resolver + `safeDecode` handle
 runtime misses without ceremony.
 
 ---

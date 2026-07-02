@@ -129,7 +129,7 @@ type ResolveContext<In, Out, Ctx = never> = {
 type Resolver<In, Out, Ctx = never> = (c: ResolveContext<In, Out, Ctx>) => Out;
 ```
 
-Presets are sugar over it: `onMiss: "throw" | { default: X } | "passthrough" | Resolver`.
+Presets are sugar over it: a static `default: X`, and `recover: "throw" | Resolver`.
 
 ### 3.2 Collision policy
 
@@ -137,7 +137,7 @@ Structural (creation-time) resolution for "two keys produce the same value." A
 default value can't resolve this — it can't pick *which* key wins. The knobs are:
 
 ```ts
-onCollision: "throw" (default) | "first-wins" | "last-wins" | (keys) => winner
+reconcile: "throw" (default) | "first-wins" | "last-wins" | (keys) => winner
 ```
 
 Note: `first-wins`/`last-wins` are just "bake the decision now" vs "defer to the
@@ -251,7 +251,7 @@ required and forgetting `ctx` is a compile error. You cannot silently drop conte
    ```
 
 5. **The resolver sees the context.** `ResolveContext.ctx` carries the bound/passed
-   value so an `onMiss`/`onAmbiguous` resolver can use it (E1: read `at` to pick a
+   value so a `recover` resolver can use it (E1: read `at` to pick a
    zone, or `raise()`).
 
 **The honest failure (E1).** When even a `Ctx` can't recover the inverse — offset →
@@ -329,7 +329,7 @@ whole point of the feature expressed at the type level.
   the opposite shape — and belongs to **Contextual** (a locale disambiguates), not
   aliases. Aliases are strictly many-wire → one-domain with deterministic decode.
 - **Not fuzzy / pattern matching.** Aliases are exact wire values. Approximate or
-  computed matching is the resolver's (`onMiss`) job.
+  computed matching is the resolver's (`recover`) job.
 - **Not a fidelity downgrade.** An enum with aliases can still be `Iso` on its
   canonical domain ⇄ canonical-wire core; aliases only widen the *accepted* decode
   input, not the round-trip guarantee.
@@ -350,7 +350,7 @@ P2/P3).
 | Combinator | Purpose | Notes |
 |---|---|---|
 | `iso({decode, encode})` | leaf, two pure inverse fns | tier inferred/annotated |
-| `Enum(entries, opts)` | discrete key↔value map | entries, not object literal (numeric-key stringification footgun); `aliases`, `onCollision`, `onMiss` |
+| `Enum(entries, opts)` | discrete key↔value map | entries, not object literal (numeric-key stringification footgun); `aliases`, `reconcile`, `default`/`recover` |
 | `Struct({ key: Field(...) })` | struct with rename + per-field codec | exposes `validate`; encode output type drops `encode:"omit"` fields |
 | `Field(wireKey, codec, opts)` | 1:1 field wire↔domain | `encode: "omit" \| "omit-if"` |
 | `Group(wireKeys[], codec)` | **N wire fields ↔ 1 domain field** | checkbox-group↔enum; §DOGFOOD G5 |

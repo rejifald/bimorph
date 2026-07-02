@@ -13,8 +13,8 @@ decode-only and lives on `Struct`, `List`, and `Tuple`.
 import { Struct, Field, Enum } from 'bimorph';
 
 // [!code fold:start]
-const Status = Enum([[1, 'active'], [0, 'inactive']], { onMiss: 'throw' });
-const Kind = Enum([['a', 'alpha'], ['b', 'beta']], { onMiss: 'throw' });
+const Status = Enum([[1, 'active'], [0, 'inactive']], { recover: 'throw' });
+const Kind = Enum([['a', 'alpha'], ['b', 'beta']], { recover: 'throw' });
 // [!code fold:end]
 const Row = Struct({
     status: Field('s', Status),

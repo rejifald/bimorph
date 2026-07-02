@@ -1,9 +1,9 @@
 ---
 title: 'The resolver'
-description: 'The single recovery primitive every onMiss and onCollision preset desugars to — typed to the target, with the context in hand and raise() to give up.'
+description: 'The single recovery primitive every recover and reconcile preset desugars to — typed to the target, with the context in hand and raise() to give up.'
 ---
 
-The resolver is the one recovery primitive every `onMiss` and `onCollision` preset
+The resolver is the one recovery primitive every `recover` and `reconcile` preset
 desugars to: a function that receives the failure and returns a domain value, or
 calls `raise()` to fail with the standard error. Reach for it when a default isn't
 enough and the recovery has to be computed.
@@ -14,7 +14,7 @@ enough and the recovery has to be computed.
 import { Enum } from 'bimorph';
 
 const Status = Enum([[1, 'active'], [0, 'inactive']], {
-    onMiss: (c): 'active' | 'inactive' => {
+    recover: (c): 'active' | 'inactive' => {
         // c sees the input, reason, direction, and any context; raise() gives up
         if (c.input > 1) return 'active';
         return c.raise();
@@ -35,8 +35,8 @@ might need:
 - **`ctx`** — the runtime context, if the codec is contextual.
 - **`raise()`** — typed `never`; give up and throw the standard error.
 
-The `onMiss` presets are sugar over this: `"throw"` is a resolver that only
-`raise()`s, and `{ default: x }` is one that always returns `x`.
+The `recover` shorthand and the `default` value are sugar over this: `recover: "throw"`
+is a resolver that only `raise()`s, and `default: x` is one that always returns `x`.
 
 <Callout type="warn">
     **Anti-pattern:** don't write a resolver that always returns a fallback and never
@@ -48,8 +48,8 @@ The `onMiss` presets are sugar over this: `"throw"` is a resolver that only
 ## See also
 
 <Cards>
-    <Card title="onMiss" href="/docs/guides/enums/on-miss" />
-    <Card title="onCollision" href="/docs/guides/enums/on-collision" />
+    <Card title="default & recover" href="/docs/guides/enums/on-miss" />
+    <Card title="reconcile" href="/docs/guides/enums/on-collision" />
     <Card title="Reference: Resolver types" href="/docs/reference/resolver" />
     <Card title="Loud by default" href="/docs/concepts/loud-by-default" />
     <Card

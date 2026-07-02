@@ -9,11 +9,12 @@ shown **before** (the surface today) and **after** (one or more options), with t
 trade-off spelled out and a recommendation.
 
 <Callout type="warn">
-    **Design note, not shipped API.** The `after` snippets are the intended surface,
-    not the current one — nothing here is exported yet (the naming in Finding 1 is
-    **decided** but not yet implemented). The version is `0.0.0-design` with **no
-    published consumers**, which is exactly why now is the cheap moment to change
-    names. Every code block on this page is plain (un-typechecked) on purpose.
+    **Design note.** Findings 1, 3, and 5 (the PascalCase constructors, `optional →
+    Nullable`, and the `reconcile` / `default` / `recover` recovery slots) are
+    **implemented** in `src` and throughout the docs. Findings 2 and 4 are still
+    proposals — their `after` snippets aren't exported yet. The version is
+    `0.0.0-design` with **no published consumers**, which is why now is the cheap moment
+    to change names. Code blocks are plain (un-typechecked) on purpose.
 </Callout>
 
 ## The whole surface, in one import
@@ -249,8 +250,36 @@ export type CtxArg<Ctx> = /* … */;
 ```ts
 // After — internal; the public type surface shrinks to what people actually annotate
 //   Codec, Iso (if kept), Result, DecodeError, ErrorTree, Fidelity,
-//   Resolver, ResolveContext, OnMiss, OnCollision, BimorphError
+//   Resolver, ResolveContext, Reconcile, BimorphError
 ```
+
+## Finding 5 — recovery slots were named like event handlers (fixed)
+
+`onMiss` and `onCollision` wore the `on*` **event-handler** idiom, but they aren't
+callbacks — they're **strategy** slots. The tell: their values are usually string
+presets (`"first-wins"`), and a string can't be an event handler. A strategy slot
+should be named after its **operation**, with a literal preset as shorthand for the
+function form.
+
+| Before | After |
+| --- | --- |
+| `onCollision: 'first-wins'` | `reconcile: 'first-wins'` |
+| `onMiss: { default: 'inactive' }` | `default: 'inactive'` |
+| `onMiss: (c) => …` | `recover: (c) => …` |
+| `onMiss: 'throw'` | `recover: 'throw'` |
+| _(omit `onMiss`)_ | _(omit `default` & `recover`)_ → closed union |
+
+Each rename was tested against its true meaning and against words worth reserving:
+
+- **`reconcile`** *elects one canonical wire* among duplicates — not `merge` (implies
+  combining values) or `dedupe` (implies removing entries), and `merge` is a word to
+  keep for an actual merge combinator.
+- **`default` / `recover`** split the old three-form `onMiss`: `default` names the
+  static value, `recover` names the dynamic resolver (with `"throw"` as its re-raise
+  shorthand). `recover` is the word reserved earlier for the general recovery concept.
+- **Closed vs. wide throw.** Omitting both keeps the **closed union** — a miss is a
+  _compile_ error; `recover: "throw"` widens the input to the primitive base and throws
+  at _runtime_. The single old `onMiss: "throw"` conflated those two behaviors.
 
 ## Settled — what this review is *not* changing
 
@@ -265,12 +294,12 @@ export type CtxArg<Ctx> = /* … */;
 
 ## In one line each
 
-- **Naming:** adopt PascalCase flat constructors — `Struct`, `Field`, `List`, `Enum`,
-  `Tuple`, `Group`, `Nullable` — now, while there are no consumers; optionally add
-  `export * as b` alongside.
-- **Types:** merge `CodecFull` into `Codec` via a `BOut = BIn` default; stop
+- **Naming (done):** PascalCase flat constructors — `Struct`, `Field`, `List`, `Enum`,
+  `Tuple`, `Group`, `Nullable`; optionally `export * as b` alongside.
+- **Recovery (done):** `onCollision` → `reconcile`; `onMiss` splits into `default`
+  (static value) + `recover` (`"throw"` | resolver); omit both for the closed union.
+- **Types (proposed):** merge `CodecFull` into `Codec` via a `BOut = BIn` default; stop
   exporting `OmitMode` / `WidenWire` / `CtxArg`.
-- **`optional`:** rename to `nullable` and document that encode emits `null`.
 
 ## See also
 

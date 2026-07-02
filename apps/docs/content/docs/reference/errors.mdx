@@ -21,7 +21,7 @@ branch of a `Result`.
 ```ts twoslash
 import { Enum } from 'bimorph';
 
-const Status = Enum([[1, 'active'], [0, 'inactive']], { onMiss: 'throw' });
+const Status = Enum([[1, 'active'], [0, 'inactive']], { recover: 'throw' });
 const r = Status.safeDecode(9);
 //    ^?
 ```

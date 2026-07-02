@@ -1,12 +1,12 @@
 ---
 title: 'collision'
-description: 'Two primary entries shared a domain value, so encode has no single canonical wire to emit — set onCollision or declare an alias.'
+description: 'Two primary entries shared a domain value, so encode has no single canonical wire to emit — set reconcile or declare an alias.'
 ---
 
 ## What you'll see
 
 A `BimorphError` with `code: "collision"` and the message
-`duplicate domain value <value> — set onCollision, or declare one wire as an alias`,
+`duplicate domain value <value> — set reconcile, or declare one wire as an alias`,
 thrown at **creation time**, not on a call.
 
 ## Why it happens
@@ -20,7 +20,7 @@ than guess, `Enum` throws when you build it.
 
 Tell `Enum` which wire wins, or that the duplicate is intentional:
 
-- **Set [`onCollision`](/docs/guides/enums/on-collision)** — `"first-wins"`,
+- **Set [`reconcile`](/docs/guides/enums/on-collision)** — `"first-wins"`,
   `"last-wins"`, or a `(domain, wires) => winner` picker — to choose the encode
   target. The losing wire still decodes, becoming an implicit alias.
 - **Declare the extra spelling as an [alias](/docs/guides/enums/aliases)** instead of
@@ -30,7 +30,7 @@ Tell `Enum` which wire wins, or that the duplicate is intentional:
 ## Related
 
 <Cards>
-    <Card title="onCollision" href="/docs/guides/enums/on-collision" />
+    <Card title="reconcile" href="/docs/guides/enums/on-collision" />
     <Card title="Aliases" href="/docs/guides/enums/aliases" />
     <Card title="Enum" href="/docs/guides/enums/enum" />
     <Card title="Intentional many-to-one" href="/docs/concepts/aliases" />

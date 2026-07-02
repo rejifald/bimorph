@@ -268,7 +268,7 @@ export function partial<A, B, Ctx = void>(spec: {
 }
 
 // ---------------------------------------------------------------------------
-// Resolver — the single recovery primitive (onMiss / onCollision desugar to it)
+// Resolver — the recovery primitive behind `recover` (reconcile presets desugar to it)
 // ---------------------------------------------------------------------------
 
 /** What a resolver receives to recover a failed mapping — or re-raise the standard error. */
@@ -287,19 +287,17 @@ export interface ResolveContext<In, Out, Ctx = void> {
 /** The primitive all recovery presets desugar to: per-value, typed to the target. */
 export type Resolver<In, Out, Ctx = void> = (c: ResolveContext<In, Out, Ctx>) => Out;
 
-/** Decode-side miss recovery: rethrow (default), substitute a default, or resolve. */
-export type OnMiss<In, Out, Ctx = void> =
-  | "throw"
-  | { readonly default: Out }
-  | Resolver<In, Out, Ctx>;
-
 /**
- * Creation-time policy when two primary entries share a domain value (ambiguous
- * encode). `first-wins`/`last-wins` bake the canonical-wire choice now; a function
- * picks per collision; `throw` (default) keeps the diagnostic loud. The losing wire
- * still *decodes* to the domain value — it becomes an implicit alias.
+ * Creation-time policy electing the canonical wire when two primary entries share a
+ * domain value (ambiguous encode). `first-wins`/`last-wins` bake the choice now; a
+ * function picks per collision; `throw` (default) keeps the diagnostic loud. The losing
+ * wire still *decodes* to the domain value — it becomes an implicit alias.
+ *
+ * Miss recovery is not here: it splits into a static `default` value and a `recover`
+ * slot (`"throw"` shorthand or a resolver). Omit both for the closed-union default,
+ * which rejects an out-of-map value at compile time.
  */
-export type OnCollision<Domain> =
+export type Reconcile<Domain> =
   | "throw"
   | "first-wins"
   | "last-wins"
@@ -312,7 +310,7 @@ export type WidenWire<T> =
   | (T extends symbol ? symbol : never);
 
 // ---------------------------------------------------------------------------
-// Enum — discrete map: alias-narrowing, onMiss recovery, onCollision policy
+// Enum — discrete map: alias-narrowing, default/recover on miss, reconcile on collision
 // ---------------------------------------------------------------------------
 
 // Overload A — no recovery: decode input is the CLOSED union (primary | alias wire),
@@ -324,7 +322,7 @@ export function Enum<
   entries: E,
   opts?: {
     readonly aliases?: AL;
-    readonly onCollision?: OnCollision<E[number][1]>;
+    readonly reconcile?: Reconcile<E[number][1]>;
   },
 ): CodecFull<
   E[number][1],
@@ -333,8 +331,8 @@ export function Enum<
   void,
   "iso"
 >;
-// Overload B — `onMiss` default/throw preset: decode input WIDENS to the wire's
-// primitive base, since the point of recovery is to accept values not in the map.
+// Overload B — a static `default`: decode input WIDENS to the wire's primitive base,
+// since the point of a default is to accept values not in the map (they become it).
 export function Enum<
   const E extends readonly (readonly [PropertyKey, unknown])[],
   const AL extends readonly (readonly [PropertyKey, E[number][1]])[] = readonly [],
@@ -342,8 +340,8 @@ export function Enum<
   entries: E,
   opts: {
     readonly aliases?: AL;
-    readonly onMiss: "throw" | { readonly default: E[number][1] };
-    readonly onCollision?: OnCollision<E[number][1]>;
+    readonly default: E[number][1];
+    readonly reconcile?: Reconcile<E[number][1]>;
   },
 ): CodecFull<
   E[number][1],
@@ -352,9 +350,9 @@ export function Enum<
   void,
   "iso"
 >;
-// Overload C — `onMiss` resolver: widened input, optionally contextual (a resolver
-// typed with `ctx` makes decode require it). Typed as a bare `Resolver` — not a union —
-// so a resolver's return literal stays contextually typed to the domain.
+// Overload C — `recover`: widened input, either the `"throw"` shorthand (re-raise) or a
+// resolver, optionally contextual (a resolver typed with `ctx` makes decode require it).
+// The resolver is a bare type so its return literal stays contextually typed to the domain.
 export function Enum<
   const E extends readonly (readonly [PropertyKey, unknown])[],
   const AL extends readonly (readonly [PropertyKey, E[number][1]])[] = readonly [],
@@ -363,8 +361,8 @@ export function Enum<
   entries: E,
   opts: {
     readonly aliases?: AL;
-    readonly onMiss: Resolver<WidenWire<E[number][0] | AL[number][0]>, E[number][1], Ctx>;
-    readonly onCollision?: OnCollision<E[number][1]>;
+    readonly recover: "throw" | Resolver<WidenWire<E[number][0] | AL[number][0]>, E[number][1], Ctx>;
+    readonly reconcile?: Reconcile<E[number][1]>;
   },
 ): CodecFull<
   E[number][1],
@@ -377,13 +375,14 @@ export function Enum(
   entries: readonly (readonly [PropertyKey, unknown])[],
   opts?: {
     readonly aliases?: readonly (readonly [PropertyKey, unknown])[];
-    readonly onMiss?: OnMiss<any, any, any>;
-    readonly onCollision?: OnCollision<any>;
+    readonly default?: unknown;
+    readonly recover?: "throw" | Resolver<any, any, any>;
+    readonly reconcile?: Reconcile<any>;
   },
 ): any {
   const decodeMap = new Map<PropertyKey, unknown>();
   const encodeMap = new Map<unknown, PropertyKey>();
-  const onCollision = opts?.onCollision ?? "throw";
+  const reconcile = opts?.reconcile ?? "throw";
 
   const ambiguousDecode = (wire: PropertyKey): BimorphError =>
     new BimorphError({
@@ -399,17 +398,17 @@ export function Enum(
 
     if (!encodeMap.has(domain)) {
       encodeMap.set(domain, wire);
-    } else if (onCollision === "throw") {
+    } else if (reconcile === "throw") {
       throw new BimorphError({
         path: "",
         code: "collision",
         input: domain,
-        message: `duplicate domain value ${String(domain)} — set onCollision, or declare one wire as an alias`,
+        message: `duplicate domain value ${String(domain)} — set reconcile, or declare one wire as an alias`,
       });
-    } else if (onCollision === "last-wins") {
+    } else if (reconcile === "last-wins") {
       encodeMap.set(domain, wire);
-    } else if (typeof onCollision === "function") {
-      encodeMap.set(domain, onCollision(domain as any, [encodeMap.get(domain)!, wire]));
+    } else if (typeof reconcile === "function") {
+      encodeMap.set(domain, reconcile(domain as any, [encodeMap.get(domain)!, wire]));
     }
     // "first-wins": keep the existing encode target; the new wire still decodes.
   }
@@ -420,7 +419,9 @@ export function Enum(
     decodeMap.set(wire, domain);
   }
 
-  const onMiss = opts?.onMiss;
+  const recover = opts?.recover;
+  const hasDefault = !!opts && "default" in opts;
+  const defaultValue = opts?.default;
   const missError = (input: unknown, direction: "decode" | "encode"): DecodeError => ({
     path: "",
     code: "miss",
@@ -433,11 +434,9 @@ export function Enum(
 
   const decodeFn = (b: PropertyKey, ctx: any): unknown => {
     if (decodeMap.has(b)) return decodeMap.get(b);
-    if (onMiss === undefined || onMiss === "throw") {
-      throw new BimorphError(missError(b, "decode"));
-    }
-    if (typeof onMiss === "function") {
-      return onMiss({
+    if (recover === "throw") throw new BimorphError(missError(b, "decode"));
+    if (typeof recover === "function") {
+      return recover({
         direction: "decode",
         input: b as any,
         reason: "miss",
@@ -447,7 +446,8 @@ export function Enum(
         },
       });
     }
-    return onMiss.default;
+    if (hasDefault) return defaultValue;
+    throw new BimorphError(missError(b, "decode"));
   };
   const encodeFn = (a: unknown): PropertyKey => {
     if (!encodeMap.has(a)) throw new BimorphError(missError(a, "encode"));

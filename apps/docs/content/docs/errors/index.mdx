@@ -15,7 +15,7 @@ slug of its catalog page. Read the `code`, and you know where to look.
 ```ts twoslash
 import { Enum, BimorphError } from 'bimorph';
 
-const Status = Enum([[1, 'active'], [0, 'inactive']], { onMiss: 'throw' });
+const Status = Enum([[1, 'active'], [0, 'inactive']], { recover: 'throw' });
 
 try {
     Status.decode(9);

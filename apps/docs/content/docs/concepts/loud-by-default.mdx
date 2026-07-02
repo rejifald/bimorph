@@ -22,7 +22,7 @@ points at exactly the field that failed, not just "something in this object".
 ```ts twoslash
 import { Enum, BimorphError } from 'bimorph';
 
-const Status = Enum([[1, 'active'], [0, 'inactive']], { onMiss: 'throw' });
+const Status = Enum([[1, 'active'], [0, 'inactive']], { recover: 'throw' });
 
 try {
     Status.decode(9);

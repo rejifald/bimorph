@@ -22,9 +22,9 @@ domain value reachable only through the wire side has nothing to emit.
 ## How to fix
 
 - **Add the entry** if the value is legitimate and simply missing.
-- **Set [`onMiss`](/docs/guides/enums/on-miss)** — a `{ default }` or a
-  [resolver](/docs/guides/recovery/resolver) — to recover unmapped values instead of
-  throwing. This also widens the accepted decode input type.
+- **Set [`default` or `recover`](/docs/guides/enums/on-miss)** — a static `default` or
+  a [resolver](/docs/guides/recovery/resolver) — to recover unmapped values instead of
+  throwing. Either widens the accepted decode input type.
 - **Declare an [alias](/docs/guides/enums/aliases)** if the missing wire value is a
   known legacy spelling of an existing domain value.
 - If a failure here is expected, decode through
@@ -35,7 +35,7 @@ domain value reachable only through the wire side has nothing to emit.
 
 <Cards>
     <Card title="Enum" href="/docs/guides/enums/enum" />
-    <Card title="onMiss" href="/docs/guides/enums/on-miss" />
+    <Card title="default & recover" href="/docs/guides/enums/on-miss" />
     <Card title="The resolver" href="/docs/guides/recovery/resolver" />
     <Card title="Aliases" href="/docs/guides/enums/aliases" />
 </Cards>

@@ -22,7 +22,7 @@ docs build) and runtime-gated (`npm run check:runtime`).
 |---|------|------|
 | P0 #1 | path threading | runtime: `address.city`, `[i]`, encode-side |
 | P0 #2 | `pipe` over `CodecFull` (alias narrowing survives) | [guide: pipe](../apps/docs/content/docs/guides/composition/pipe.mdx) |
-| P1 #3 | resolver (`onMiss`/`onCollision`, widened input, `ambiguous`) | [guide: resolver](../apps/docs/content/docs/guides/recovery/resolver.mdx) |
+| P1 #3 | resolver (`recover`/`reconcile`, widened input, `ambiguous`) | [guide: resolver](../apps/docs/content/docs/guides/recovery/resolver.mdx) |
 | P2 #4 | `List` / `Tuple` | [guide: array & tuple](../apps/docs/content/docs/guides/composites/array-and-tuple.mdx) |
 | P2 #5 | `validate` + `ErrorTree` (composites only) | [guide: validate](../apps/docs/content/docs/guides/doors/validate.mdx) |
 | P3 #6 | `Group` (N↔1) | [guide: group](../apps/docs/content/docs/guides/composites/group.mdx) |
@@ -36,8 +36,8 @@ Gates now: **`typecheck` clean · `apps/docs` build (twoslash) green · `check:r
 - **`pipe` into a wire-asymmetric `b`** (e.g. an `encode:"omit"` object) stays a type
   error rather than a silent collapse — model that boundary as an explicitly asymmetric
   codec, or nest via `Struct`. The alias case (asymmetric `a`) is fully supported.
-- **A computed-literal `onMiss` resolver return needs a return annotation** (a TS
-  overload-resolution limitation). The `{ default }` preset and `raise()`-style
+- **A computed-literal `recover` resolver return needs a return annotation** (a TS
+  overload-resolution limitation). The `default` value and `raise()`-style
   resolvers are clean bare; annotated resolvers cover the rest.
 
 The sections below are the original punch list, kept as the design/evidence trail.
@@ -85,19 +85,19 @@ compiler / runtime, not asserted.
 
 ## P1 — Build the escape-hatch spine
 
-### 3. Resolver subsystem (`onMiss` / `onAmbiguous` / `onCollision`)  — L
+### 3. Resolver subsystem (`default` / `recover` / `reconcile`)  — L
 
 - **Fills:** the single most-cited gap. DESIGN §3.1 calls the resolver "the primitive
   all recovery presets desugar to," and it is 100% absent — every "recover gracefully"
   path currently degrades to hand-rolled `try/catch`.
 - **What:** `Resolver` / `ResolveContext` types (typed `raise()`, `candidates`, and the
   load-bearing `ctx` field); preset sugar
-  `onMiss: "throw" | { default } | "passthrough" | Resolver`;
-  `onCollision: "throw" | "first-wins" | "last-wins" | fn`; wire into `Enum` decode /
+  a static `default` value plus `recover: "throw" | Resolver`;
+  `reconcile: "throw" | "first-wins" | "last-wins" | fn`; wire into `Enum` decode /
   encode; start emitting the `"ambiguous"` / `"lossy"` `DecodeError` codes that are
   declared but never produced.
 - **Unlocks:** B3, C1, C3, D1, D3, E1, E5.
-- **Done-when:** `Enum(…, { onMiss: { default: X } }).decode(unknown)` returns `X`; a
+- **Done-when:** `Enum(…, { default: X }).decode(unknown)` returns `X`; a
   resolver reading `ctx` disambiguates E5 (`¥` → JPY / CNY).
 
 ---

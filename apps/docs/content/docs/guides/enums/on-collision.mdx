@@ -1,9 +1,9 @@
 ---
-title: 'onCollision'
+title: 'reconcile'
 description: 'Resolve two primary entries that share a domain value with first-wins, last-wins, a picker, or the loud default throw.'
 ---
 
-Set `onCollision` when two primary entries intentionally share a domain value and
+Set `reconcile` when two primary entries intentionally share a domain value and
 you need to say which wire `encode` should emit. Without it, a domain-side duplicate
 throws at creation — because the reverse direction can't pick a canonical wire on
 its own.
@@ -21,7 +21,7 @@ const Status = Enum(
         [2, 'active'],
         [0, 'inactive'],
     ],
-    { onCollision: 'first-wins' },
+    { reconcile: 'first-wins' },
 );
 
 Status.decode(2); // 'active'
@@ -30,7 +30,7 @@ Status.encode('active'); // 1
 
 ## Options
 
-`onCollision` takes one of four forms:
+`reconcile` takes one of four forms:
 
 - **`"throw"`** — the default. A domain-side duplicate is a creation error, keeping
   the diagnostic loud for genuine mistakes.
@@ -43,7 +43,7 @@ Status.encode('active'); // 1
 discarded — it still decodes, exactly like an [alias](/docs/guides/enums/aliases).
 
 <Callout type="warn">
-    **Anti-pattern:** don't silence an _accidental_ duplicate with `onCollision` —
+    **Anti-pattern:** don't silence an _accidental_ duplicate with `reconcile` —
     if two entries collide by mistake, fix the entries; the default throw is
     catching a real bug. For known legacy spellings, prefer
     [`aliases`](/docs/guides/enums/aliases), which make the intent explicit and

@@ -51,7 +51,7 @@ Aliases are sharply not three neighbouring shapes:
   opposite shape — and a locale disambiguates it, so it belongs to
   [context](/docs/concepts/context-requirement), not aliases.
 - **Not fuzzy matching.** Aliases are exact wire values; approximate or computed
-  matching is the [resolver](/docs/guides/recovery/resolver)'s (`onMiss`) job.
+  matching is the [resolver](/docs/guides/recovery/resolver)'s (`recover`) job.
 - **Not a fidelity downgrade.** An enum with aliases can still be `iso` on its
   canonical core; aliases widen the accepted decode input, not the round-trip
   guarantee.
@@ -66,7 +66,7 @@ still throws.
 <Cards>
     <Card title="Guide: Enum" href="/docs/guides/enums/enum" />
     <Card title="Guide: Aliases" href="/docs/guides/enums/aliases" />
-    <Card title="Guide: onCollision" href="/docs/guides/enums/on-collision" />
+    <Card title="Guide: reconcile" href="/docs/guides/enums/on-collision" />
     <Card title="The context axis" href="/docs/concepts/context-requirement" />
     <Card title="Error: collision" href="/docs/errors/collision" />
 </Cards>

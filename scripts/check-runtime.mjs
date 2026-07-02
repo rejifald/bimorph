@@ -201,50 +201,57 @@ check("assertRoundTrip: round-trip drift throws code=lossy", () => {
   eq(bad.detail?.code, "lossy", "error code");
 });
 
-// --- P1 #3: resolver — onMiss / onCollision ---------------------------------
+// --- P1 #3: recovery — default / recover / reconcile ------------------------
 
-check("onMiss default: substitutes a declared fallback domain value on miss", () => {
+check("default: substitutes a declared fallback domain value on miss", () => {
   const Status = Enum([["shipped", "Shipped"], ["unknown", "Unknown"]], {
-    onMiss: { default: "Unknown" },
+    default: "Unknown",
   });
   eq(Status.decode("shipped"), "Shipped", "known value");
   eq(Status.decode("garbage"), "Unknown", "miss → default");
 });
 
-check("onMiss resolver: receives reason + input, returns a domain value", () => {
+check("recover: receives reason + input, returns a domain value", () => {
   const Status = Enum([["shipped", "Shipped"], ["other", "Other"]], {
-    onMiss: (c) => (c.reason === "miss" ? "Other" : c.raise()),
+    recover: (c) => (c.reason === "miss" ? "Other" : c.raise()),
   });
   eq(Status.decode("weird"), "Other", "resolver value");
 });
 
-check("onMiss resolver: raise() falls back to the standard miss error", () => {
-  const Status = Enum([["shipped", "Shipped"]], { onMiss: (c) => c.raise() });
+check("recover: raise() falls back to the standard miss error", () => {
+  const Status = Enum([["shipped", "Shipped"]], { recover: (c) => c.raise() });
   const r = Status.safeDecode("nope");
   if (r.ok) throw new Error("expected failure");
   eq(r.error.code, "miss", "error code");
 });
 
-check("onMiss resolver: reads runtime ctx to disambiguate", () => {
-  const Sym = Enum([["USD", "$"], ["EUR", "€"]], { onMiss: (c) => c.ctx?.fallback ?? "$" });
+check("recover 'throw' shorthand: widens input, throws at runtime on miss", () => {
+  const Status = Enum([["shipped", "Shipped"]], { recover: "throw" });
+  const r = Status.safeDecode("nope");
+  if (r.ok) throw new Error("expected failure");
+  eq(r.error.code, "miss", "error code");
+});
+
+check("recover: reads runtime ctx to disambiguate", () => {
+  const Sym = Enum([["USD", "$"], ["EUR", "€"]], { recover: (c) => c.ctx?.fallback ?? "$" });
   eq(Sym.decode("GBP", { fallback: "€" }), "€", "ctx used by resolver");
 });
 
-check("onCollision first-wins: first wire canonical, loser still decodes", () => {
+check("reconcile first-wins: first wire canonical, loser still decodes", () => {
   const HttpErr = Enum([[400, "ValidationError"], [422, "ValidationError"]], {
-    onCollision: "first-wins",
+    reconcile: "first-wins",
   });
   eq(HttpErr.decode(400), "ValidationError", "400 decodes");
   eq(HttpErr.decode(422), "ValidationError", "422 decodes (implicit alias)");
   eq(HttpErr.encode("ValidationError"), 400, "encodes to first");
 });
 
-check("onCollision last-wins: last wire becomes canonical", () => {
-  const E = Enum([[400, "V"], [422, "V"]], { onCollision: "last-wins" });
+check("reconcile last-wins: last wire becomes canonical", () => {
+  const E = Enum([[400, "V"], [422, "V"]], { reconcile: "last-wins" });
   eq(E.encode("V"), 422, "encodes to last");
 });
 
-check("onCollision throw (default): domain dup throws at creation", () => {
+check("reconcile throw (default): domain dup throws at creation", () => {
   const e = throws(() => Enum([[1, "x"], [2, "x"]]), "dup domain");
   eq(e.detail?.code, "collision", "error code");
 });

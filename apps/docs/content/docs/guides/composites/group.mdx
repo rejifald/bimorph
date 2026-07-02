@@ -49,7 +49,7 @@ composite's wire shape; the one domain key is what your app sees.
 
 Invalid wire states that no creation-time check can catch — all-false, two-true —
 are the inner codec's job: make its `decode` a [`partial`](/docs/guides/leaves/partial)
-that returns a `Result`, or give it an [`onMiss`](/docs/guides/enums/on-miss)
+that returns a `Result`, or give it a [`recover`](/docs/guides/enums/on-miss)
 resolver.
 
 <Callout type="warn">

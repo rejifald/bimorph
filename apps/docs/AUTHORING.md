@@ -93,8 +93,8 @@ const Status = enum_([
 
 {/* Only the options that matter here, with defaults. Link to Reference for the
 exhaustive shape — never paste a full type table into a guide (rule 6). */}
-`onCollision` decides what happens when two entries share a domain value;
-`onMiss` decides what an unmapped wire value does. See
+`reconcile` decides what happens when two entries share a domain value;
+`default` and `recover` decide what an unmapped wire value does. See
 [Reference → Constructors](/docs/reference/constructors) for every field.
 
 <Callout type="warn">
@@ -199,7 +199,7 @@ description: Two primary entries shared a domain value, so encode has no single 
 ## Related {/* (required) */}
 
 <Cards>
-    <Card title="Guide: onCollision" href="/docs/guides/enums/on-collision" />
+    <Card title="Guide: reconcile" href="/docs/guides/enums/on-collision" />
 </Cards>
 ````
 
