@@ -38,7 +38,16 @@ export default defineConfig({
                 // hover tooltips. Spread the defaults so the stock Shiki
                 // transformers (tab/title/icon meta) survive; the Popup
                 // components it emits are registered in components/mdx.tsx.
-                transformerTwoslash(),
+                // Resolve `bimorph` to its TS source (not the published dist/) so docs
+                // type-check against live src/index.ts. Twoslash requests the custom
+                // `bimorph-source` export condition declared in the package exports map.
+                transformerTwoslash({
+                    twoslashOptions: {
+                        compilerOptions: {
+                            customConditions: ['bimorph-source'],
+                        },
+                    },
+                }),
                 // Collapse `// [!code fold:start] … [!code fold:end]` regions
                 // behind a "Show full example" toggle. Runs AFTER twoslash so it
                 // folds the post-twoslash line elements (and keeps them in the
