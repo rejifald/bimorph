@@ -1,0 +1,45 @@
+---
+title: 'Keep server-managed fields out of what you send back'
+description: 'Mark created_at and id as encode: "omit" so they decode in but the encode output type structurally lacks them — a round-trip can never resend them.'
+---
+
+An API sends you `user_id` and `created_at`, but rejects them on write — they're
+server-managed. Mark those fields
+[`encode: 'omit'`](/docs/guides/composites/field): they decode in, but the encode
+output type structurally lacks them, so a round-trip can't resend what the server
+owns.
+
+## Example
+
+```ts twoslash
+import { object, field, iso } from 'bimorph';
+
+// [!code fold:start]
+const num = iso<number, number>({ decode: (n) => n, encode: (n) => n });
+const str = iso<string, string>({ decode: (s) => s, encode: (s) => s });
+// [!code fold:end]
+const User = object({
+    id: field('user_id', num, { encode: 'omit' }),
+    name: field('full_name', str),
+    createdAt: field('created_at', str, { encode: 'omit' }),
+});
+
+// the encode output type has neither user_id nor created_at
+const dto = User.encode({ id: 7, name: 'Ada', createdAt: '2020-01-01' });
+//    ^?
+```
+
+`id` and `createdAt` are still there on decode, so your domain object is complete —
+but the `encode` result is typed `{ full_name: string }` alone. There's no way to
+accidentally send a read-only field back.
+
+## See also
+
+<Cards>
+    <Card title="field" href="/docs/guides/composites/field" />
+    <Card title="object" href="/docs/guides/composites/object" />
+    <Card
+        title="Map a wire DTO to your domain"
+        href="/docs/recipes/map-a-dto-to-your-domain"
+    />
+</Cards>

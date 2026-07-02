@@ -1,0 +1,51 @@
+---
+title: 'Principles'
+description: 'Tools not guarantees, behavior as a door, loud by default, two decision times, and non-invertibility made expressible — the ideas that shape the API.'
+---
+
+Five principles shape every API decision in bimorph. Read them once and you can
+predict how a feature behaves before you look it up.
+
+## Why it's shaped this way
+
+**Tools, not guarantees.** bimorph helps you _spot_ a broken mapping and gives you
+escape hatches to _resolve_ it; it does not try to make a bad schema correct. If
+your data model is lossy or ambiguous, that stays your problem — bimorph only
+guarantees the problem won't be silent.
+
+**Behaviour is a door, not a flag.** Different failure-handling behaviours are
+different named entry points, visible at the call site, never a config flag that
+silently changes what a method returns. → [Doors, not flags](/docs/concepts/doors).
+
+**Loud by default.** The bare `decode`/`encode` throw, and the error carries a path.
+Silence — `undefined`, a swallowed nested error — is something you opt into. →
+[Loud by default](/docs/concepts/loud-by-default).
+
+**Two decision times, two rules.** Creation-time config describes _the mapping_ —
+collision policy, resolver, encode-omit — and a flag is right there. Call-time
+behaviour describes _the caller's expectations_ — throw, `Result`, fallback,
+accumulate — and that is a door only, never a flag.
+
+**Non-invertibility is expressible, not hidden.** The type reflects the guarantee:
+an `iso` promises a clean round-trip; a `lossy`, `partial`, or contextual mapping is
+a _different type_ that makes no such promise, so a caller can't accidentally assume
+one. → [Fidelity tiers](/docs/concepts/fidelity-tiers),
+[the context axis](/docs/concepts/context-requirement).
+
+## How it relates
+
+Every combinator is an application of these five. `enum_` aliases exist because
+intentional many-to-one is real (tools, not guarantees); `partial` drops the
+throwing door (non-invertibility, expressible); the `validate` door lives only on
+composites (behaviour is a door). When a design choice looks surprising, one of
+these five is usually the reason.
+
+## See also
+
+<Cards>
+    <Card title="The codec" href="/docs/concepts/the-codec" />
+    <Card title="Doors, not flags" href="/docs/concepts/doors" />
+    <Card title="Fidelity tiers" href="/docs/concepts/fidelity-tiers" />
+    <Card title="Intentional many-to-one" href="/docs/concepts/aliases" />
+    <Card title="Loud by default" href="/docs/concepts/loud-by-default" />
+</Cards>

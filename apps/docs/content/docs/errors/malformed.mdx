@@ -1,0 +1,40 @@
+---
+title: 'malformed'
+description: 'A decode or encode function threw, and bimorph wrapped it as a malformed failure with a path.'
+---
+
+## What you'll see
+
+A `BimorphError` with `code: "malformed"` whose `message` is the message of some
+_other_ error — a `TypeError`, a manual `throw`, anything your own `decode` or
+`encode` function raised. Unlike the structured codes, this one is the catch-all: it
+means your codec's own function blew up.
+
+## Why it happens
+
+A function inside a leaf codec threw a raw error rather than reporting a structured
+failure. bimorph catches it, wraps it as a `DecodeError` with `code: "malformed"`,
+and prefixes the [`path`](/docs/concepts/loud-by-default) so you still know _where_
+in a composite it happened — but the `code` stays `malformed` because the failure
+came from outside the mapping's own vocabulary.
+
+## How to fix
+
+- **Read the `message` and `path`** — they point at the throwing function and its
+  location in the structure.
+- **Report failure structurally instead of throwing raw.** If a decode can fail on
+  valid input, make it a [`partial`](/docs/guides/leaves/partial) whose `decode`
+  returns a `Result`; if you're recovering, use a
+  [resolver](/docs/guides/recovery/resolver) and call `raise()` rather than throwing
+  a bare error.
+- If the throw signals a genuine bug in the function (a null deref), fix the
+  function.
+
+## Related
+
+<Cards>
+    <Card title="partial" href="/docs/guides/leaves/partial" />
+    <Card title="The resolver" href="/docs/guides/recovery/resolver" />
+    <Card title="Loud by default" href="/docs/concepts/loud-by-default" />
+    <Card title="Reference: Errors & results" href="/docs/reference/errors" />
+</Cards>

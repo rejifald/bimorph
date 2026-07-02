@@ -1,0 +1,65 @@
+---
+title: 'enum_'
+description: 'Map a set of discrete keys to values, entries-first, and get decode and encode from one declaration.'
+---
+
+Reach for `enum_` when a fixed set of wire values maps to a fixed set of domain
+values — the status codes, kinds, and flags an API sends as ints or short strings.
+
+## Example
+
+```ts twoslash
+import { enum_ } from 'bimorph';
+
+const Status = enum_([
+    [1, 'active'],
+    [0, 'inactive'],
+]);
+
+const label = Status.decode(1);
+//    ^?
+
+const wire = Status.encode('active');
+//    ^?
+```
+
+## Options
+
+`enum_` takes an **array of `[wire, domain]` entries**, not an object literal — an
+object would stringify numeric keys (`{ 1: … }` becomes the string `"1"`), silently
+corrupting an int-keyed mapping. Entries keep `1` a number.
+
+The second argument configures the mapping:
+
+- **[`aliases`](/docs/guides/enums/aliases)** — extra decode-only spellings that
+  decode to a canonical domain value but never come back out of `encode`.
+- **[`onMiss`](/docs/guides/enums/on-miss)** — what an unmapped wire value does:
+  throw, a default, or a resolver. This also widens the accepted decode input type.
+- **[`onCollision`](/docs/guides/enums/on-collision)** — how to resolve two entries
+  that share a domain value.
+
+By default, with none of these set, the decode input is a **closed union** of the
+declared wire values, so an unmapped value is a compile error rather than a runtime
+surprise.
+
+<Callout type="warn">
+    **Anti-pattern:** don't give two entries the same domain value and expect both
+    to `encode` — the reverse direction can only pick one canonical wire, so it
+    throws at creation. If the duplicate is intentional, declare one wire as an
+    [alias](/docs/guides/enums/aliases) or set
+    [`onCollision`](/docs/guides/enums/on-collision); if it's a mistake, the throw
+    is doing its job.
+</Callout>
+
+## See also
+
+<Cards>
+    <Card title="Aliases" href="/docs/guides/enums/aliases" />
+    <Card title="onMiss" href="/docs/guides/enums/on-miss" />
+    <Card title="onCollision" href="/docs/guides/enums/on-collision" />
+    <Card
+        title="Reverse a lookup table"
+        href="/docs/recipes/reverse-a-lookup-table"
+    />
+    <Card title="Intentional many-to-one" href="/docs/concepts/aliases" />
+</Cards>

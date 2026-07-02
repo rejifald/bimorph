@@ -1,0 +1,43 @@
+---
+title: 'Collect every bad field, not just the first'
+description: 'Use the validate door on a composite to accumulate every failing path into a flat, form-library-shaped ErrorTree.'
+---
+
+A form submission has several bad fields and the user should see all of them at once,
+not fix one and rediscover the next. Use the
+[`validate`](/docs/guides/doors/validate) door on a composite: it accumulates every
+failing path into a flat, form-library-shaped `ErrorTree` instead of throwing on the
+first.
+
+## Example
+
+```ts twoslash
+import { object, field, enum_ } from 'bimorph';
+
+// [!code fold:start]
+const Status = enum_([[1, 'active'], [0, 'inactive']], { onMiss: 'throw' });
+const Kind = enum_([['a', 'alpha'], ['b', 'beta']], { onMiss: 'throw' });
+// [!code fold:end]
+const Row = object({
+    status: field('s', Status),
+    kind: field('k', Kind),
+});
+
+// both fields miss → every failing path at once, keyed by field
+const result = Row.validate({ s: 9, k: 'z' });
+const errors = result.ok ? null : result.error;
+//    ^?
+```
+
+On failure, `errors` is an `ErrorTree` — `{ status: …, kind: … }` here — a flat map
+keyed by path (`"shipping.postalCode"` when nested). That shape drops straight onto a
+form library that keys messages by field. On success, `validate` still returns the
+decoded value, so it's "decode but collect", not a boolean check.
+
+## See also
+
+<Cards>
+    <Card title="validate" href="/docs/guides/doors/validate" />
+    <Card title="object" href="/docs/guides/composites/object" />
+    <Card title="Errors & results" href="/docs/reference/errors" />
+</Cards>

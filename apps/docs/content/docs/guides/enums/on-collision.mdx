@@ -1,0 +1,60 @@
+---
+title: 'onCollision'
+description: 'Resolve two primary entries that share a domain value with first-wins, last-wins, a picker, or the loud default throw.'
+---
+
+Set `onCollision` when two primary entries intentionally share a domain value and
+you need to say which wire `encode` should emit. Without it, a domain-side duplicate
+throws at creation — because the reverse direction can't pick a canonical wire on
+its own.
+
+## Example
+
+```ts twoslash
+import { enum_ } from 'bimorph';
+
+// 1 and 2 both decode to 'active'. first-wins makes 1 the canonical encode target;
+// 2 still decodes fine — it becomes an implicit alias.
+const Status = enum_(
+    [
+        [1, 'active'],
+        [2, 'active'],
+        [0, 'inactive'],
+    ],
+    { onCollision: 'first-wins' },
+);
+
+Status.decode(2); // 'active'
+Status.encode('active'); // 1
+```
+
+## Options
+
+`onCollision` takes one of four forms:
+
+- **`"throw"`** — the default. A domain-side duplicate is a creation error, keeping
+  the diagnostic loud for genuine mistakes.
+- **`"first-wins"`** — the first entry's wire is the encode target; later duplicates
+  still decode.
+- **`"last-wins"`** — the last entry's wire wins instead.
+- **`(domain, wires) => winner`** — pick the canonical wire per collision.
+
+`first-wins` and `last-wins` are just "bake the choice now"; the losing wire is not
+discarded — it still decodes, exactly like an [alias](/docs/guides/enums/aliases).
+
+<Callout type="warn">
+    **Anti-pattern:** don't silence an _accidental_ duplicate with `onCollision` —
+    if two entries collide by mistake, fix the entries; the default throw is
+    catching a real bug. For known legacy spellings, prefer
+    [`aliases`](/docs/guides/enums/aliases), which make the intent explicit and
+    keep the encode type narrow.
+</Callout>
+
+## See also
+
+<Cards>
+    <Card title="enum_" href="/docs/guides/enums/enum" />
+    <Card title="Aliases" href="/docs/guides/enums/aliases" />
+    <Card title="Intentional many-to-one" href="/docs/concepts/aliases" />
+    <Card title="Error: collision" href="/docs/errors/collision" />
+</Cards>

@@ -1,0 +1,38 @@
+---
+title: 'Catch precision loss a lossy mapping introduces'
+description: 'Tag a mapping lossy where a clean round-trip is not promised, and hold the line in your test suite with assertRoundTrip.'
+---
+
+A mapping produces a usable value both ways but sheds precision — cents to a
+floating-point dollar amount. Tag it [`lossy`](/docs/guides/leaves/lossy) so its type
+makes no round-trip promise, then hold the line in your test suite with
+[`assertRoundTrip`](/docs/guides/testing/assert-round-trip).
+
+## Example
+
+```ts twoslash
+import { lossy, assertRoundTrip } from 'bimorph';
+
+const Money = lossy<number, number>({
+    decode: (cents) => cents / 100,
+    encode: (dollars) => Math.round(dollars * 100),
+});
+
+// in your test suite — throws on the first sample that doesn't round-trip
+assertRoundTrip(Money, [0, 100, 999, 100000, 12345]);
+```
+
+Precision loss is data-dependent, so no creation-time check can catch it — `lossy`
+moves the guarantee into a place that can actually test it. Choose samples that
+exercise the edges: rounding boundaries, zero, and the largest values you expect.
+
+## See also
+
+<Cards>
+    <Card
+        title="assertRoundTrip"
+        href="/docs/guides/testing/assert-round-trip"
+    />
+    <Card title="lossy" href="/docs/guides/leaves/lossy" />
+    <Card title="Error: lossy" href="/docs/errors/lossy" />
+</Cards>

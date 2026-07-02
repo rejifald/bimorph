@@ -1,0 +1,59 @@
+---
+title: 'The resolver'
+description: 'The single recovery primitive every onMiss and onCollision preset desugars to — typed to the target, with the context in hand and raise() to give up.'
+---
+
+The resolver is the one recovery primitive every `onMiss` and `onCollision` preset
+desugars to: a function that receives the failure and returns a domain value, or
+calls `raise()` to fail with the standard error. Reach for it when a default isn't
+enough and the recovery has to be computed.
+
+## Example
+
+```ts twoslash
+import { enum_ } from 'bimorph';
+
+const Status = enum_([[1, 'active'], [0, 'inactive']], {
+    onMiss: (c): 'active' | 'inactive' => {
+        // c sees the input, reason, direction, and any context; raise() gives up
+        if (c.input > 1) return 'active';
+        return c.raise();
+    },
+});
+```
+
+## Options
+
+A resolver is `(c: ResolveContext) => Out`, typed to the target `Out` so the escape
+hatch never widens to `any`. The `ResolveContext` carries everything the recovery
+might need:
+
+- **`input`** — the value that failed to map.
+- **`reason`** — `'miss'`, `'ambiguous'`, or `'lossy'`.
+- **`direction`** — `'decode'` or `'encode'`.
+- **`candidates`** — the possibilities, when the failure is ambiguity.
+- **`ctx`** — the runtime context, if the codec is contextual.
+- **`raise()`** — typed `never`; give up and throw the standard error.
+
+The `onMiss` presets are sugar over this: `"throw"` is a resolver that only
+`raise()`s, and `{ default: x }` is one that always returns `x`.
+
+<Callout type="warn">
+    **Anti-pattern:** don't write a resolver that always returns a fallback and never
+    `raise()`s — that reintroduces exactly the silence bimorph exists to remove. Call
+    `raise()` on the inputs you genuinely can't recover, so a real failure still
+    surfaces loudly instead of decoding to a wrong value.
+</Callout>
+
+## See also
+
+<Cards>
+    <Card title="onMiss" href="/docs/guides/enums/on-miss" />
+    <Card title="onCollision" href="/docs/guides/enums/on-collision" />
+    <Card title="Reference: Resolver types" href="/docs/reference/resolver" />
+    <Card title="Loud by default" href="/docs/concepts/loud-by-default" />
+    <Card
+        title="Recover from an unmapped value"
+        href="/docs/recipes/recover-unknown-values"
+    />
+</Cards>

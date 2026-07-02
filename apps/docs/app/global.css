@@ -1,0 +1,25 @@
+@import 'tailwindcss';
+@import 'fumadocs-ui/css/neutral.css';
+@import 'fumadocs-ui/css/preset.css';
+
+/* Tailwind v4 needs to scan Fumadocs' compiled classes. */
+@source '../node_modules/fumadocs-ui/dist/**/*.js';
+
+/* --- Foldable code blocks ------------------------------------------------- *
+ * The `pre` override in components/code-block.tsx wraps a foldable block in a
+ * `.code-fold` container that owns the border + rounding; the collapsed region
+ * is a `display:contents` span the toggle hides. See lib/transformer-fold.ts.  */
+.code-fold [data-fold-region] {
+    display: contents;
+}
+.code-fold[data-fold-collapsed='true'] [data-fold-region] {
+    display: none;
+}
+/* The wrapper owns the frame, so strip the inner Fumadocs figure's own. */
+.code-fold figure {
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent;
+}

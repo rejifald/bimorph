@@ -1,0 +1,56 @@
+---
+title: 'Helpers'
+description: 'assertRoundTrip and the .bind() context-erasure method.'
+---
+
+The test helper and the context-erasure method that sit alongside the constructors.
+
+## assertRoundTrip
+
+`assertRoundTrip(codec, samples, ...ctx)` round-trips each wire sample through
+`decode` then `encode` and throws a `BimorphError` with code
+[`lossy`](/docs/errors/lossy) on the first that doesn't come back structurally equal.
+It's the only enforcement behind the [`lossy`](/docs/guides/leaves/lossy) tier.
+
+```ts twoslash
+import { lossy, assertRoundTrip } from 'bimorph';
+
+// [!code fold:start]
+const Money = lossy<number, number>({
+    decode: (cents) => cents / 100,
+    encode: (dollars) => Math.round(dollars * 100),
+});
+// [!code fold:end]
+assertRoundTrip(Money, [0, 100, 999]);
+```
+
+For a [contextual](/docs/concepts/context-requirement) codec, pass the `ctx` as the
+trailing argument — `assertRoundTrip(codec, samples, ctx)`.
+
+## .bind()
+
+`.bind(ctx)` is a method on every codec, not a free function. It fixes a contextual
+codec's context once and returns an ordinary `Codec<A, B, void>` with the trailing
+`ctx` argument gone from every door — which is what lets a contextual codec drop into
+`object`, `array`, and `pipe`.
+
+```ts twoslash
+import { partial } from 'bimorph';
+
+// [!code fold:start]
+const Phone = partial<string, string, { region: string }>({
+    decode: (national, ctx) => ({ ok: true, value: `${ctx.region}:${national}` }),
+    encode: (e164) => e164,
+});
+// [!code fold:end]
+const usPhone = Phone.bind({ region: 'US' });
+```
+
+## See also
+
+<Cards>
+    <Card title="assertRoundTrip guide" href="/docs/guides/testing/assert-round-trip" />
+    <Card title=".bind() guide" href="/docs/guides/context/bind" />
+    <Card title="Constructors" href="/docs/reference/constructors" />
+    <Card title="Codec types" href="/docs/reference/codec-types" />
+</Cards>

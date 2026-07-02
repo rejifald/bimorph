@@ -1,0 +1,46 @@
+---
+title: 'optional'
+description: 'Normalize a null or absent wire value to undefined on decode, and undefined back to null on encode.'
+---
+
+Reach for `optional` to wrap a codec so a `null` or absent wire value decodes to
+`undefined`, and an `undefined` domain value encodes back to `null` — the usual
+`null`↔`undefined` normalization between a JSON wire and TypeScript domain code.
+
+## Example
+
+```ts twoslash
+import { optional, enum_ } from 'bimorph';
+
+const Status = enum_([[1, 'active'], [0, 'inactive']]);
+const MaybeStatus = optional(Status);
+
+const decoded = MaybeStatus.decode(null);
+//    ^?
+
+const wire = MaybeStatus.encode(undefined);
+//    ^?
+```
+
+## Options
+
+`optional(codec)` widens the codec's types on both ends: the decode input accepts
+`null` or `undefined` (in addition to the wrapped wire type) and yields `undefined`;
+the encode input accepts `undefined` and yields `null`. Any non-empty value passes
+straight through to the wrapped codec. Fidelity and context pass through unchanged.
+
+<Callout type="warn">
+    **Anti-pattern:** don't reach for `optional` to make a field disappear from
+    encode output — `optional` normalizes a value between `null` and `undefined`;
+    it always emits a key. A field that should be structurally absent on encode is
+    [`field(..., { encode: 'omit' })`](/docs/guides/composites/field).
+</Callout>
+
+## See also
+
+<Cards>
+    <Card title="field" href="/docs/guides/composites/field" />
+    <Card title="object" href="/docs/guides/composites/object" />
+    <Card title="array & tuple" href="/docs/guides/composites/array-and-tuple" />
+    <Card title="Reference: Constructors" href="/docs/reference/constructors" />
+</Cards>

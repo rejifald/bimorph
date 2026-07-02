@@ -1,0 +1,12 @@
+{
+    "title": "Documentation",
+    "description": "Bidirectional data mapping for TypeScript: define a mapping once and get both directions — decode (wire → domain) and encode (domain → wire) — with the reverses that do not invert cleanly surfaced in the type instead of failing silently.",
+    "pages": [
+        "getting-started",
+        "recipes",
+        "concepts",
+        "guides",
+        "reference",
+        "errors"
+    ]
+}

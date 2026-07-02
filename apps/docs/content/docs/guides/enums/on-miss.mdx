@@ -1,0 +1,62 @@
+---
+title: 'onMiss'
+description: 'Choose what an unmapped wire value does — throw, substitute a default, or run a resolver — and how each choice widens the decode input type.'
+---
+
+Set `onMiss` when a wire value outside the map shouldn't be a hard failure —
+substitute a default or compute a value with a resolver instead of throwing. Any
+`onMiss` also widens the accepted decode input, since the point is to accept values
+the map doesn't list.
+
+## Example
+
+```ts twoslash
+import { enum_ } from 'bimorph';
+
+// A default keeps decode total: an unmapped wire falls back instead of throwing.
+const Status = enum_([[1, 'active'], [0, 'inactive']], {
+    onMiss: { default: 'inactive' },
+});
+
+const label = Status.decode(9);
+//    ^?
+```
+
+## Options
+
+`onMiss` takes one of three forms:
+
+- **`"throw"`** — the default behaviour, stated explicitly. It still widens the
+  input type to the wire's primitive base.
+- **`{ default: value }`** — return `value` for any unmapped wire.
+- **a resolver** — a function that receives the input (and any context) and returns
+  the domain value, or calls `raise()` to fail with the standard error:
+
+```ts twoslash
+import { enum_ } from 'bimorph';
+
+const Status = enum_([[1, 'active'], [0, 'inactive']], {
+    onMiss: (c): 'active' | 'inactive' => (c.input > 1 ? 'active' : c.raise()),
+});
+```
+
+Every form **widens the decode input** from the closed union of declared wires to
+the wire's primitive base (here, `number`), because recovery only makes sense for
+values outside the map. The [resolver](/docs/guides/recovery/resolver) is the
+primitive the other two desugar to.
+
+<Callout type="warn">
+    **Anti-pattern:** don't use a resolver to pattern-match spellings you already
+    know — `"new-search"`, `"newSearchUI"`. Those are exact, so they're
+    [aliases](/docs/guides/enums/aliases): typed, narrowed, and visible in the
+    declaration. A resolver is for genuinely computed recovery.
+</Callout>
+
+## See also
+
+<Cards>
+    <Card title="The resolver" href="/docs/guides/recovery/resolver" />
+    <Card title="enum_" href="/docs/guides/enums/enum" />
+    <Card title="onCollision" href="/docs/guides/enums/on-collision" />
+    <Card title="Error: miss" href="/docs/errors/miss" />
+</Cards>

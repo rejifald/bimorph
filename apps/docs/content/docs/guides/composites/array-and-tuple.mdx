@@ -1,0 +1,55 @@
+---
+title: 'array & tuple'
+description: 'Map homogeneous lists and fixed-length heterogeneous lists, with per-index paths threaded into errors.'
+---
+
+Reach for `array` when every element of a list runs through the same codec, and
+`tuple` when a fixed-length list has a different codec per position. Both thread a
+`[i]` segment into error paths and expose the `validate` door.
+
+## Example
+
+```ts twoslash
+import { array, tuple, enum_ } from 'bimorph';
+
+const Status = enum_([[1, 'active'], [0, 'inactive']]);
+
+// array: every element through the same codec
+const Statuses = array(Status);
+const decoded = Statuses.decode([1, 0, 1]);
+//    ^?
+
+// tuple: element i through codecs[i] — here [status, status]
+const Pair = tuple(Status, Status);
+const both = Pair.decode([1, 0]);
+//    ^?
+```
+
+## Options
+
+`array(codec)` is homogeneous: `decode` maps each wire element through `codec` and
+returns a list of domain values; `encode` does the reverse. `tuple(...codecs)` is a
+fixed-length heterogeneous list, where element `i` runs through `codecs[i]` and the
+result is a positional tuple type.
+
+Both carry the same two traits an `object` has:
+
+- an error thrown inside them carries a `[i]` path segment (`"items[2]"`), which
+  nests through composites to `"orders[0].status"`;
+- they expose the [`validate`](/docs/guides/doors/validate) door, accumulating a
+  failure per bad index instead of throwing on the first.
+
+<Callout type="warn">
+    **Anti-pattern:** don't use `tuple` for a variable-length list — its arity is
+    fixed at the number of codecs you pass, so a shorter or longer wire array is
+    wrong by construction. A list whose length varies at runtime is an `array`.
+</Callout>
+
+## See also
+
+<Cards>
+    <Card title="object" href="/docs/guides/composites/object" />
+    <Card title="optional" href="/docs/guides/composites/optional" />
+    <Card title="validate" href="/docs/guides/doors/validate" />
+    <Card title="Loud by default" href="/docs/concepts/loud-by-default" />
+</Cards>

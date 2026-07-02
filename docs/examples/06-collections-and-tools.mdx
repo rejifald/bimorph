@@ -1,0 +1,106 @@
+---
+title: Collections & tooling
+scenarios: [A1, A3, B1, C2, D4, E2]
+---
+
+# Collections & tooling
+
+`array` / `tuple` extend the composite machinery to lists, `optional` normalizes
+`null`/absent ↔ `undefined`, `omit-if` drops a field conditionally, and
+`assertRoundTrip` is the test-time check that gives the `lossy` tier teeth. Every
+snippet below is type-checked against the real library types via twoslash.
+
+## `array` — homogeneous lists
+
+Each element runs through the inner codec; the wide/narrow split is preserved, and a
+failing element reports a `[i]` path segment at runtime.
+
+```ts twoslash
+import { enum_, array } from 'bimorph'
+
+const Tag = enum_([['sale', 'Sale'], ['new', 'New']])
+const Tags = array(Tag)
+
+const decoded = Tags.decode(['sale', 'new'])
+//    ^?
+const wire = Tags.encode(['Sale', 'New'])
+//    ^?
+```
+
+## `tuple` — fixed-length heterogeneous lists
+
+Element `i` runs through `codecs[i]`; the domain and wire types stay positional tuples.
+
+```ts twoslash
+import { iso, enum_, tuple } from 'bimorph'
+
+const Num = iso<number, string>({ decode: (s) => Number(s), encode: (n) => String(n) })
+const Tag = enum_([['sale', 'Sale']])
+
+const Row = tuple(Num, Tag)
+
+const decoded = Row.decode(['42', 'sale'])
+//    ^?
+```
+
+## `optional` — `null`/absent ↔ `undefined`
+
+A `null` or missing wire value decodes to `undefined`; an `undefined` domain value
+encodes back to `null`. This is scenario A3 (nullable column ↔ optional field) as a
+combinator instead of a hand-rolled `iso`.
+
+```ts twoslash
+import { iso, optional } from 'bimorph'
+
+const DateIso = iso<Date, string>({
+  decode: (s) => new Date(s),
+  encode: (d) => d.toISOString(),
+})
+const MaybeDate = optional(DateIso)
+
+const decoded = MaybeDate.decode(null)
+//    ^?
+const wire = MaybeDate.encode(undefined)
+//    ^?
+```
+
+## `omit-if` — conditional encode-omit
+
+Unconditional `encode: "omit"` drops a field from the wire-out type entirely.
+`encode: "omit-if"` drops it only when the predicate holds, so the field stays
+**optional** in the wire-out type — exactly scenario B1 (drop `page=1` defaults from a
+URL, keep `page=2`).
+
+```ts twoslash
+import { iso, object, field } from 'bimorph'
+
+const Num = iso<number, number>({ decode: (b) => b, encode: (a) => a })
+
+const Filter = object({
+  page: field('page', Num, { encode: 'omit-if', when: (v) => v === 1 }),
+  sort: field('sort', Num),
+})
+
+// `page` is optional in the wire-out type — present or absent at runtime:
+const wire = Filter.encode({ page: 2, sort: 3 })
+//    ^?
+```
+
+## `assertRoundTrip` — the teeth behind `lossy`
+
+Precision loss is data-dependent, so it can't be caught at creation. `assertRoundTrip`
+moves the check into your test suite: round-trip the samples you care about and fail
+loudly on drift.
+
+```ts twoslash
+import { lossy, assertRoundTrip } from 'bimorph'
+
+// cents ↔ dollars: rounding makes this lossy, not iso
+const Money = lossy<number, number>({
+  decode: (cents) => cents / 100,
+  encode: (dollars) => Math.round(dollars * 100),
+})
+
+// In a test — these integer-cent samples round-trip cleanly, so this passes:
+assertRoundTrip(Money, [1999, 100, 0])
+```

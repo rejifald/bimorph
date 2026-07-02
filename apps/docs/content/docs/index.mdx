@@ -1,0 +1,37 @@
+---
+title: 'bimorph'
+description: 'Define a mapping once and get decode and encode for free — with duplicate values, lossy transforms, read-only fields, and context-dependent reverses surfaced in the type, not hidden.'
+---
+
+bimorph is a TypeScript library for **bidirectional data mapping**. Define a mapping
+once — a **codec** — and get both directions from it: `decode` reads an external value
+into your domain, `encode` writes it back out.
+
+The interesting part isn't the happy path; a lookup object already does that. It's
+that most real mappings **don't invert cleanly** — duplicate values, lossy transforms,
+missing keys, read-only fields, reverses that need runtime context. bimorph surfaces
+those in the type and hands you explicit escape hatches, instead of pretending every
+mapping is a clean isomorphism.
+
+```ts twoslash
+import { enum_ } from 'bimorph';
+
+const Status = enum_([
+    [1, 'active'],
+    [0, 'inactive'],
+]);
+
+Status.decode(1); // 'active'
+Status.encode('active'); // 1
+```
+
+## Start here
+
+<Cards>
+    <Card title="Quickstart" href="/docs/getting-started/quickstart" />
+    <Card title="The codec" href="/docs/concepts/the-codec" />
+    <Card title="Guides" href="/docs/guides/leaves/iso" />
+    <Card title="Recipes" href="/docs/recipes" />
+    <Card title="Reference" href="/docs/reference/codec-types" />
+    <Card title="Errors & pitfalls" href="/docs/errors" />
+</Cards>

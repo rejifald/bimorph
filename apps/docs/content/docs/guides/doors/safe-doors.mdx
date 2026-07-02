@@ -1,0 +1,54 @@
+---
+title: 'safeDecode & decodeOr'
+description: 'Get a Result you handle, or a value you fall back to, using the same error type the throwing door raises.'
+---
+
+Reach for `safeDecode` when a failure is expected and you want to handle it, or
+`decodeOr` when you just want a value with a fallback. Both carry the exact error
+type the throwing door raises — no separate error vocabulary to learn.
+
+## Example
+
+```ts twoslash
+import { enum_ } from 'bimorph';
+
+const Status = enum_([[1, 'active'], [0, 'inactive']], { onMiss: 'throw' });
+
+const result = Status.safeDecode(9);
+//    ^?
+if (result.ok) result.value; // narrowed to 'active' | 'inactive'
+
+const label = Status.decodeOr(9, 'inactive');
+//    ^?
+```
+
+## Options
+
+`safeDecode` and `safeEncode` return a `Result` — a plain discriminated union,
+`{ ok: true; value } | { ok: false; error }`. You check `.ok` and TypeScript narrows
+to `value` or `error`; there are no wrapper methods to learn, because the recovery
+verbs (`decodeOr`, `encodeOr`) live on the codec, not on `Result`.
+
+`decodeOr(b, fallback)` and `encodeOr(a, fallback)` skip the `Result` entirely and
+always return a value — the decoded one on success, your `fallback` on failure. The
+`error` inside a `Result` is identical to what the bare
+[`decode`](/docs/guides/doors/decode-and-encode) throws, so switching doors never
+changes your error handling.
+
+<Callout type="warn">
+    **Anti-pattern:** don't read `result.value` without checking `result.ok` first —
+    TypeScript won't let you, and that's the design. The discriminant forces you to
+    handle the `ok: false` branch instead of assuming success.
+</Callout>
+
+## See also
+
+<Cards>
+    <Card title="decode & encode" href="/docs/guides/doors/decode-and-encode" />
+    <Card title="validate" href="/docs/guides/doors/validate" />
+    <Card title="Doors, not flags" href="/docs/concepts/doors" />
+    <Card
+        title="Decode without throwing"
+        href="/docs/recipes/decode-without-throwing"
+    />
+</Cards>

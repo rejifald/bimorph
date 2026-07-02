@@ -1,0 +1,51 @@
+---
+title: 'assertRoundTrip'
+description: 'Round-trip a set of samples through decode then encode in your test suite — the only enforcement behind the lossy tier.'
+---
+
+Reach for `assertRoundTrip` in your test suite to hold a codec's round-trip honest.
+It runs each sample through `decode` then `encode` and throws on any drift — the one
+enforcement behind the [`lossy`](/docs/guides/leaves/lossy) tier, which makes no
+creation-time promise.
+
+## Example
+
+```ts twoslash
+import { lossy, assertRoundTrip } from 'bimorph';
+
+// [!code fold:start]
+const Money = lossy<number, number>({
+    decode: (cents) => cents / 100,
+    encode: (dollars) => Math.round(dollars * 100),
+});
+// [!code fold:end]
+// in a test: decode then encode each sample and assert it comes back equal
+assertRoundTrip(Money, [0, 100, 999, 100000]);
+```
+
+## Options
+
+`assertRoundTrip(codec, samples)` round-trips each wire sample and throws a
+`BimorphError` with code [`lossy`](/docs/errors/lossy) on the first that doesn't come
+back structurally equal. Precision loss is data-dependent, so no creation-time check
+can catch it — this moves the guarantee into a place that can actually test it. For a
+contextual codec, pass the `ctx` as a trailing argument.
+
+<Callout type="warn">
+    **Anti-pattern:** don't read a green `assertRoundTrip` as proof the mapping is
+    `iso` — it proves your _samples_ round-trip, not every input. Choose samples that
+    exercise the precision edges: rounding boundaries, zero, negatives, and the
+    largest values you expect.
+</Callout>
+
+## See also
+
+<Cards>
+    <Card title="lossy" href="/docs/guides/leaves/lossy" />
+    <Card title="Fidelity tiers" href="/docs/concepts/fidelity-tiers" />
+    <Card title="Error: lossy" href="/docs/errors/lossy" />
+    <Card
+        title="Catch precision loss in tests"
+        href="/docs/recipes/guard-a-lossy-mapping-in-tests"
+    />
+</Cards>

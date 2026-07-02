@@ -1,0 +1,14 @@
+{
+    "title": "Guides",
+    "icon": "BookOpen",
+    "pages": [
+        "leaves",
+        "enums",
+        "composites",
+        "composition",
+        "doors",
+        "context",
+        "recovery",
+        "testing"
+    ]
+}

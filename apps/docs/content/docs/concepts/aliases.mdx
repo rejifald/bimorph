@@ -1,0 +1,72 @@
+---
+title: 'Intentional many-to-one'
+description: 'Why several wire values decoding to one domain value is the common case, not an error, and how aliases make it first-class without silencing real duplicate bugs.'
+---
+
+Several wire values decoding to one domain value is the common case — legacy status
+strings, deprecated flag spellings, versioned event names — not an error. Aliases
+make it first-class: they widen what `decode` accepts while `encode` only ever emits
+the canonical wire value.
+
+## Why it's shaped this way
+
+The naive rule "a duplicate is a bug, throw at creation" fights exactly this
+legitimate migration pattern. You want the old spelling to keep decoding while new
+data is written with the canonical one. Aliases carve out that intent without a
+blanket "turn off the check" flag.
+
+**Two indexes, and every rule falls out of keeping both functional.** An `enum_`
+holds a decode index (`wire → domain`, populated by primaries **and** aliases) and
+an encode index (`domain → wire`, populated by **primaries only**). An alias is
+therefore decode-only: a permanent, implicit `encode: "omit"` on that spelling.
+
+The payoff shows up in the type. `decode` accepts the wide union of every spelling;
+`encode` returns the narrow, canonical-only union:
+
+```ts twoslash
+import { enum_ } from 'bimorph';
+
+const Flag = enum_([['search_v2', 'SearchV2']], {
+    aliases: [
+        ['new-search', 'SearchV2'],
+        ['newSearchUI', 'SearchV2'],
+    ],
+});
+
+Flag.decode('new-search'); // 'SearchV2' — a legacy spelling still decodes
+
+const wire = Flag.encode('SearchV2');
+//    ^?
+```
+
+A downstream consumer of `encode` output _cannot_ receive a deprecated spelling —
+the type guarantees the migration only ever writes canonical values. That is the
+whole feature, expressed at the type level.
+
+## How it relates
+
+Aliases are sharply not three neighbouring shapes:
+
+- **Not one-wire-to-many-domain.** `$` → USD | CAD | AUD is decode _ambiguity_ — the
+  opposite shape — and a locale disambiguates it, so it belongs to
+  [context](/docs/concepts/context-requirement), not aliases.
+- **Not fuzzy matching.** Aliases are exact wire values; approximate or computed
+  matching is the [resolver](/docs/guides/recovery/resolver)'s (`onMiss`) job.
+- **Not a fidelity downgrade.** An enum with aliases can still be `iso` on its
+  canonical core; aliases widen the accepted decode input, not the round-trip
+  guarantee.
+
+Declaring an alias is you asserting "I know this collides on the domain side, on
+purpose", so the [collision](/docs/errors/collision) diagnostic is suppressed only
+for declared alias pairs — never globally. Every undeclared domain-side duplicate
+still throws.
+
+## See also
+
+<Cards>
+    <Card title="Guide: enum_" href="/docs/guides/enums/enum" />
+    <Card title="Guide: Aliases" href="/docs/guides/enums/aliases" />
+    <Card title="Guide: onCollision" href="/docs/guides/enums/on-collision" />
+    <Card title="The context axis" href="/docs/concepts/context-requirement" />
+    <Card title="Error: collision" href="/docs/errors/collision" />
+</Cards>

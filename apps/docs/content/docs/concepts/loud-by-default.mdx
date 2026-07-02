@@ -1,0 +1,61 @@
+---
+title: 'Loud by default'
+description: 'Why the bare verb throws with a path, and why getting undefined or a swallowed nested error is always something you opt into through a door.'
+---
+
+The bare verb throws on failure, and the error always carries a path. Getting
+`undefined` back, or a nested error swallowed somewhere in a composite, is something
+you opt into through a door — never the default.
+
+## Why it's shaped this way
+
+Silence is the killer this library exists to avoid. A mapping that quietly returns
+`undefined` for a value it couldn't handle turns a data problem into a bug three
+layers away. So `decode` and `encode` throw, and the choice to _not_ throw is a
+door you reach for on purpose.
+
+**The path is what makes throwing safe.** A `BimorphError` carries a `DecodeError`:
+`{ path, code, input, message }`. The `path` is `""` for a leaf, and
+`"shipping.postalCode"` or `"items[2].name"` inside a composite — so the throw
+points at exactly the field that failed, not just "something in this object".
+
+```ts twoslash
+import { enum_, BimorphError } from 'bimorph';
+
+const Status = enum_([[1, 'active'], [0, 'inactive']], { onMiss: 'throw' });
+
+try {
+    Status.decode(9);
+} catch (e) {
+    if (e instanceof BimorphError) {
+        e.detail.code; // 'miss'
+        e.detail.path; // '' here; 'address.city' when the miss is inside an object
+    }
+}
+```
+
+**Composites thread the path through nesting.** Each level prefixes its own
+segment onto the child's path as the error travels up, so a leaf that only knows
+`path: ""` is reported at its full location. That recursion is what builds
+`"a.b.c"` out of leaves that never saw the whole shape.
+
+## How it relates
+
+Opting into silence is always a [door](/docs/concepts/doors), chosen at the call
+site: `decodeOr(b, fallback)` when you want a value instead of a throw,
+[`validate`](/docs/guides/doors/validate) when you want every failing path
+collected rather than the first one thrown.
+
+Each `code` a `DecodeError` can carry — `miss`, `ambiguous`, `collision`, `lossy`,
+`malformed` — has its own [catalog page](/docs/errors), so a thrown error's `code`
+maps straight to its remediation.
+
+## See also
+
+<Cards>
+    <Card title="Doors, not flags" href="/docs/concepts/doors" />
+    <Card title="Guide: validate" href="/docs/guides/doors/validate" />
+    <Card title="Errors & pitfalls" href="/docs/errors" />
+    <Card title="Reference: Errors & results" href="/docs/reference/errors" />
+    <Card title="Principles" href="/docs/concepts/principles" />
+</Cards>

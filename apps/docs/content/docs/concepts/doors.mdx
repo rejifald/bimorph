@@ -1,0 +1,73 @@
+---
+title: 'Doors, not flags'
+description: 'Why each failure behavior — throw, Result, fallback, accumulate — is a separate named method visible at the call site, never a config flag that silently changes what decode returns.'
+---
+
+Each way a codec can fail is a separate, named door — `decode` throws,
+`safeDecode` returns a `Result`, `decodeOr` falls back — never a config flag that
+silently changes what `decode` returns.
+
+## Why it's shaped this way
+
+**A door, not a flag.** Different failure-handling behaviours are different named
+entry points, so the choice is visible at the call site and in the diff. A boolean
+like `{ throwOnError: false }` buries that decision inside a config object where a
+reviewer can't see it change what a call returns; a door can't hide. You read the
+method name and you know whether this call throws.
+
+There are exactly three doors per direction — more would be noise:
+
+| Door                      | Returns                     | You're saying         |
+| ------------------------- | --------------------------- | --------------------- |
+| `decode(b)`               | `A`, **throws** on failure  | "I assert this works" |
+| `safeDecode(b)`           | `Result<A, DecodeError>`    | "I'll handle failure" |
+| `decodeOr(b, fallback)`   | `A`, always                 | "Just give me a value"|
+
+`encode` mirrors them: `encode` / `safeEncode` / `encodeOr`.
+
+```ts twoslash
+import { enum_ } from 'bimorph';
+
+// onMiss widens the accepted input to `number`, so a value outside the map is a
+// runtime miss the doors can differ on — not a compile error.
+const Status = enum_([[1, 'active'], [0, 'inactive']], { onMiss: 'throw' });
+
+Status.decode(9); // throws BimorphError — you assert success
+Status.safeDecode(9); // { ok: false, error } — you handle it
+Status.decodeOr(9, 'inactive'); // 'inactive' — you just want a value
+```
+
+**Same error across every door.** What `safeDecode` puts in its `error` is exactly
+what `decode` throws, so error handling composes. `Result` is a dumb discriminated
+union — `{ ok: true; value: A } | { ok: false; error: DecodeError }` — not a
+wrapper class with its own method zoo. One error API, not two.
+
+**`validate` is the fourth door, composites only.** `object`, `array`, and `tuple`
+expose `validate`, which accumulates every failing path into an `ErrorTree` instead
+of failing fast on the first. A leaf codec has one thing to fail and nothing to
+accumulate, so the door isn't on its type at all.
+
+## How it relates
+
+Which doors a codec even offers is set by its
+[fidelity tier](/docs/concepts/fidelity-tiers): a `partial` codec drops the
+throwing `decode`, because its inverse can fail, and leaves you only the `safe*`,
+`validate`, and `*Or` doors.
+
+The throwing door is loud on purpose — see [Loud by default](/docs/concepts/loud-by-default)
+for why silence is always something you reach through a door for, never the
+default. The accumulate door is covered in the
+[`validate`](/docs/guides/doors/validate) guide.
+
+## See also
+
+<Cards>
+    <Card title="Loud by default" href="/docs/concepts/loud-by-default" />
+    <Card title="Fidelity tiers" href="/docs/concepts/fidelity-tiers" />
+    <Card
+        title="Guide: safeDecode & decodeOr"
+        href="/docs/guides/doors/safe-doors"
+    />
+    <Card title="Guide: validate" href="/docs/guides/doors/validate" />
+    <Card title="Reference: Errors & results" href="/docs/reference/errors" />
+</Cards>

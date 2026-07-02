@@ -1,0 +1,27 @@
+{
+  "name": "bimorph",
+  "version": "0.0.0-design",
+  "private": true,
+  "type": "module",
+  "description": "Bidirectional data mapping — prototype proving the alias-narrowing and contextual type machinery.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "check:runtime": "node scripts/check-runtime.mjs",
+    "check:examples": "node scripts/check-examples.mjs",
+    "build:docs": "node scripts/build-docs.mjs",
+    "docs": "npm run dev --workspace @bimorph/docs"
+  },
+  "devDependencies": {
+    "@shikijs/twoslash": "^4.3.0",
+    "markdown-it": "^14.3.0",
+    "shiki": "^4.3.0",
+    "twoslash": "latest",
+    "typescript": "latest"
+  }
+}

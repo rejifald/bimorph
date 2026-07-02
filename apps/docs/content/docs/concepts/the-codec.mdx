@@ -1,0 +1,77 @@
+---
+title: 'The codec'
+description: 'The one primitive bimorph is built on — a typed, two-directional mapping between a domain value and its wire form, carrying its own fidelity and context in the type.'
+---
+
+A codec is bimorph's one primitive: a typed, two-directional mapping between a
+domain value and its wire form. `decode` reads the external form in, `encode`
+writes the domain form out, and both directions come from the same declaration —
+you write the mapping once.
+
+## Why it's shaped this way
+
+The thing every project reaches for is a lookup object, and a lookup object gives
+you one direction. `STATUSES[0]` is easy; the reverse — find the key whose value is
+`"OK"` — you hand-write with `Object.entries(...).find(...)`, and the two halves
+drift the moment someone edits one. A codec keeps the pair together, so a single
+edit changes both directions at once.
+
+**Two directions, one declaration.** A codec is the `decode`/`encode` pair, not two
+functions you maintain in parallel. `decode(b: B): A` reads wire `B` into domain
+`A`; `encode(a: A): B` writes it back. The direction matches io-ts and Effect
+Schema, so it won't surprise anyone who has met a codec before.
+
+**The type carries the guarantee, not just the shape.** A codec is
+`Codec<A, B, Ctx, F>`: `A` is your domain value, `B` is the wire form, `Ctx` is any
+runtime context the mapping needs, and `F` is its fidelity tier. The last two are
+the load-bearing part — a codec that needs a `region` to decode, or one whose
+inverse is guesswork, says so in its type, so a caller cannot silently assume a
+context-free clean round-trip.
+
+```ts twoslash
+import { enum_ } from 'bimorph';
+
+const Status = enum_([
+    [1, 'active'],
+    [0, 'inactive'],
+]);
+
+const label = Status.decode(1);
+//    ^?
+
+const wire = Status.encode('active');
+//    ^?
+```
+
+## How it relates
+
+A codec is the unit everything else attaches to or is built from.
+
+What a door _returns_ on failure — a thrown error, a `Result`, a fallback — is
+[Doors, not flags](/docs/concepts/doors). The bare `decode`/`encode` throw; the
+`safe*` and `*Or` doors don't.
+
+What round-trip a codec _promises_ is its
+[fidelity tier](/docs/concepts/fidelity-tiers): `iso`, `lossy`, or `partial`. A
+`partial` codec doesn't even offer a throwing `decode`, because its inverse can
+fail.
+
+What a codec _needs_ to run is its
+[context](/docs/concepts/context-requirement). A contextual codec requires a `ctx`
+argument the value can't carry, checked at compile time.
+
+And because a codec is itself a value, codecs _compose_:
+[`object`](/docs/guides/composites/object) maps a record field-by-field and
+[`pipe`](/docs/guides/composition/pipe) chains two codecs end to end, each taking
+the weaker fidelity and the merged context of its parts.
+
+## See also
+
+<Cards>
+    <Card title="Doors, not flags" href="/docs/concepts/doors" />
+    <Card title="Fidelity tiers" href="/docs/concepts/fidelity-tiers" />
+    <Card title="The context axis" href="/docs/concepts/context-requirement" />
+    <Card title="Principles" href="/docs/concepts/principles" />
+    <Card title="Quickstart" href="/docs/getting-started/quickstart" />
+    <Card title="Reference: Codec types" href="/docs/reference/codec-types" />
+</Cards>

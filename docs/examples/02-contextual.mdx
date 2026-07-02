@@ -1,0 +1,68 @@
+---
+title: Contextual codecs
+scenarios: [B3, E3, E5, C4]
+---
+
+# Contextual codecs
+
+Some reverses need information the value doesn't carry — an entity list, a region, a
+locale, a timezone. Those codecs take a third `Ctx` type param. Forgetting the context
+is a compile error; you can also `bind` it once and get an ordinary codec back.
+
+## A `<select>` value ↔ entity (context = the live list)
+
+```ts twoslash
+import { iso } from 'bimorph'
+
+type User = { id: string; name: string }
+
+const SelectUser = iso<User, string, { entities: User[] }>({
+  decode: (id, { entities }) => {
+    const found = entities.find((u) => u.id === id)
+    if (!found) throw new Error('stale option')
+    return found
+  },
+  encode: (user) => user.id,
+})
+
+const users: User[] = [{ id: 'u1', name: 'Ann' }]
+const picked = SelectUser.decode('u1', { entities: users })
+//    ^?
+```
+
+## Forgetting the context is a type error
+
+```ts twoslash
+// @errors: 2554
+import { iso } from 'bimorph'
+
+type User = { id: string; name: string }
+
+const SelectUser = iso<User, string, { entities: User[] }>({
+  decode: (id, { entities }) => entities.find((u) => u.id === id)!,
+  encode: (u) => u.id,
+})
+
+SelectUser.decode('u1')
+```
+
+## `bind` erases the context
+
+When the context is stable over many calls (a render pass, a whole form), bind it once
+and the result is a plain `Codec` with the normal doors — no `ctx` argument.
+
+```ts twoslash
+import { iso } from 'bimorph'
+
+type User = { id: string; name: string }
+
+const SelectUser = iso<User, string, { entities: User[] }>({
+  decode: (id, { entities }) => entities.find((u) => u.id === id)!,
+  encode: (u) => u.id,
+})
+
+const forThisRender = SelectUser.bind({ entities: [{ id: 'u1', name: 'Ann' }] })
+
+const user = forThisRender.decode('u1')
+//    ^?
+```

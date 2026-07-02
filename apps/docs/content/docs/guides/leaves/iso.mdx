@@ -1,0 +1,47 @@
+---
+title: 'iso'
+description: 'Build a leaf codec from two pure inverse functions when both round-trips hold exactly.'
+---
+
+Reach for `iso` when a value maps to its wire form and back with no loss — two pure
+inverse functions where `decode(encode(a)) === a` and `encode(decode(b)) === b` both
+hold.
+
+## Example
+
+```ts twoslash
+import { iso } from 'bimorph';
+
+// epoch milliseconds (wire) ↔ Date (domain) — an exact round-trip both ways
+const Timestamp = iso<Date, number>({
+    decode: (ms) => new Date(ms),
+    encode: (d) => d.getTime(),
+});
+```
+
+## Options
+
+`iso<A, B>` takes one object with `decode: (b: B) => A` and `encode: (a: A) => B`.
+`A` is your domain type, `B` is the wire type; the tier is fixed to `iso`, which is
+you promising both round-trips hold. Nothing else is configurable — a leaf codec
+has no failure policy because, at this tier, there is no expected failure to
+recover from.
+
+For a contextual leaf, add a third type parameter and a `ctx` argument to each
+function — see [contextual codecs](/docs/guides/context/contextual-codecs).
+
+<Callout type="warn">
+    **Anti-pattern:** don't use `iso` for a mapping that sheds precision — cents to
+    a floating-point dollar amount, a rounded unit conversion. `iso` promises an
+    exact round-trip, so that promise would be a lie; reach for
+    [`lossy`](/docs/guides/leaves/lossy) instead and guard it with a test.
+</Callout>
+
+## See also
+
+<Cards>
+    <Card title="lossy" href="/docs/guides/leaves/lossy" />
+    <Card title="partial" href="/docs/guides/leaves/partial" />
+    <Card title="Fidelity tiers" href="/docs/concepts/fidelity-tiers" />
+    <Card title="Reference: Constructors" href="/docs/reference/constructors" />
+</Cards>

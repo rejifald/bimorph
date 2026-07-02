@@ -1,0 +1,5 @@
+{
+    "title": "Errors & pitfalls",
+    "icon": "TriangleAlert",
+    "pages": ["miss", "ambiguous", "collision", "lossy", "malformed"]
+}

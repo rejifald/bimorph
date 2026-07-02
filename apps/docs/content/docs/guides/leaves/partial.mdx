@@ -1,0 +1,68 @@
+---
+title: 'partial'
+description: 'Build a leaf codec whose decode can fail on otherwise-valid input, which removes the throwing decode door and forces safeDecode.'
+---
+
+Reach for `partial` when a direction can fail on otherwise-valid input — the inverse
+is genuine guesswork, like splitting `"First Last"` into `{ first, last }`. Its
+`decode` returns a `Result`, and the throwing `decode` door is removed at the type
+level.
+
+## Example
+
+```ts twoslash
+import { partial, type Result } from 'bimorph';
+
+// "First Last" (wire) ↔ { first, last } (domain). The split is a guess, so decode
+// returns a Result rather than asserting success.
+const Name = partial<{ first: string; last: string }, string>({
+    decode: (full): Result<{ first: string; last: string }> => {
+        const [first, ...rest] = full.split(' ');
+        if (!first)
+            return {
+                ok: false,
+                error: { path: '', code: 'malformed', input: full, message: 'empty name' },
+            };
+        return { ok: true, value: { first, last: rest.join(' ') } };
+    },
+    encode: (n) => `${n.first} ${n.last}`,
+});
+
+const parsed = Name.safeDecode('Ada Lovelace');
+//    ^?
+```
+
+## Options
+
+`partial<A, B>` differs from `iso`/`lossy` in one place: `decode` returns
+`Result<A>` — `{ ok: true; value }` or `{ ok: false; error }` — instead of `A`.
+That is the signal that the inverse can fail, and it's what removes the throwing
+`decode` from the codec's type. You're left with `safeDecode`, `decodeOr`, and (on
+composites) `validate` — every one of which makes you acknowledge the failure.
+
+`encode` stays a plain function: the forward direction is assumed reliable; only the
+inverse is in doubt.
+
+<Callout type="warn">
+    **Anti-pattern:** don't reach for `partial` when a `ctx` would make the inverse
+    total. A national phone number can't become E.164 without a `region` — but
+    given the region, it can. That's a [contextual](/docs/concepts/context-requirement)
+    codec, not a permanently-fallible one. Stay `partial` only when even the right
+    context can't recover the inverse.
+</Callout>
+
+## See also
+
+<Cards>
+    <Card title="iso" href="/docs/guides/leaves/iso" />
+    <Card title="lossy" href="/docs/guides/leaves/lossy" />
+    <Card title="Fidelity tiers" href="/docs/concepts/fidelity-tiers" />
+    <Card
+        title="safeDecode & decodeOr"
+        href="/docs/guides/doors/safe-doors"
+    />
+    <Card
+        title="Contextual codecs"
+        href="/docs/guides/context/contextual-codecs"
+    />
+</Cards>

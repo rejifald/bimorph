@@ -1,0 +1,77 @@
+---
+title: 'The context axis'
+description: 'Why needing runtime context is a second axis orthogonal to fidelity, and how the type forces you to supply a ctx the value cannot carry.'
+---
+
+Whether a codec needs runtime context is a second axis, orthogonal to fidelity: a
+contextual codec requires a `ctx` argument the value itself can't carry, and the
+type won't let you forget it.
+
+## Why it's shaped this way
+
+**Orthogonal to fidelity, not a fourth tier.** Context-requirement is about whether
+the reverse needs an argument the value doesn't hold — a `region` to parse a
+national phone number, a `locale` to resolve `$` to a currency — not about
+round-trip quality. A contextual codec can also be `lossy` or `partial`; the two
+axes vary independently, and both show up in the type.
+
+**The type forces you to supply it.** A contextual codec carries a third parameter,
+`Ctx`. `decode(b)` compiles only when `Ctx` is `void`; the moment a codec needs
+context, `decode(b, ctx)` is required and forgetting the `ctx` is a compile error.
+You cannot silently drop it.
+
+```ts twoslash
+// @errors: 2554
+import { partial } from 'bimorph';
+
+const Phone = partial<string, string, { region: string }>({
+    decode: (national, ctx) => ({ ok: true, value: `${ctx.region}:${national}` }),
+    encode: (e164) => e164,
+});
+
+Phone.safeDecode('202-555-0100', { region: 'US' }); // ctx required and supplied
+Phone.safeDecode('202-555-0100'); // missing ctx
+```
+
+**Bind it once, drop the argument.** When the context is stable over many calls — a
+whole form, one render pass — `.bind(ctx)` returns an ordinary, context-free codec.
+That is what makes contextual codecs composable: bind first, then drop the result
+into `object`, `array`, or `pipe` as a plain codec.
+
+```ts twoslash
+// [!code fold:start]
+import { partial } from 'bimorph';
+
+const Phone = partial<string, string, { region: string }>({
+    decode: (national, ctx) => ({ ok: true, value: `${ctx.region}:${national}` }),
+    encode: (e164) => e164,
+});
+// [!code fold:end]
+const usPhone = Phone.bind({ region: 'US' });
+usPhone.safeDecode('202-555-0100'); // an ordinary codec now — no ctx
+```
+
+## How it relates
+
+A composite made of contextual children is itself contextual: `object` and `pipe`
+**intersect** their children's contexts into one merged bag and pass it down, so
+each child reads its own fields. That merge is why a `Ctx` must be an object type,
+not a bare `string`.
+
+When even a `Ctx` can't recover an inverse — an offset can't name an IANA zone no
+matter the instant — the codec stays [`partial`](/docs/concepts/fidelity-tiers),
+and that is the design working: it forces you to inject enough context to
+disambiguate, or admit the inverse doesn't exist.
+
+## See also
+
+<Cards>
+    <Card
+        title="Guide: contextual codecs"
+        href="/docs/guides/context/contextual-codecs"
+    />
+    <Card title="Guide: .bind()" href="/docs/guides/context/bind" />
+    <Card title="The codec" href="/docs/concepts/the-codec" />
+    <Card title="Fidelity tiers" href="/docs/concepts/fidelity-tiers" />
+    <Card title="Guide: pipe" href="/docs/guides/composition/pipe" />
+</Cards>

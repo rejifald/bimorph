@@ -1,0 +1,17 @@
+{
+    "title": "Recipes",
+    "icon": "ChefHat",
+    "pages": [
+        "reverse-a-lookup-table",
+        "migrate-legacy-enum-values",
+        "map-a-dto-to-your-domain",
+        "drop-server-managed-fields-on-encode",
+        "decode-without-throwing",
+        "collect-every-form-error",
+        "localize-a-value-with-context",
+        "guard-a-lossy-mapping-in-tests",
+        "collapse-checkboxes-to-an-enum",
+        "recover-unknown-values",
+        "compose-two-codecs"
+    ]
+}

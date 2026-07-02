@@ -1,0 +1,66 @@
+---
+title: 'pipe'
+description: 'Compose codecs end to end, taking the weaker fidelity tier and the intersection of their contexts, with error paths threaded through.'
+---
+
+Reach for `pipe` to chain two codecs into one — a wire-facing codec whose domain is
+an intermediate value, then a domain-facing codec that takes it the rest of the way.
+Decode flows wire → mid → domain; encode flows back.
+
+## Example
+
+```ts twoslash
+import { pipe, iso, lossy } from 'bimorph';
+
+// [!code fold:start]
+const StringToCents = iso<number, string>({
+    decode: (s) => Number(s),
+    encode: (n) => String(n),
+});
+const CentsToDollars = lossy<number, number>({
+    decode: (cents) => cents / 100,
+    encode: (dollars) => Math.round(dollars * 100),
+});
+// [!code fold:end]
+// a is wire-facing (string ↔ cents), b is domain-facing (cents ↔ dollars)
+const Price = pipe(StringToCents, CentsToDollars);
+
+const dollars = Price.decode('1050');
+//    ^?
+
+// the composed codec takes the weaker of the two tiers
+Price.fidelity;
+//    ^?
+```
+
+## Options
+
+`pipe(a, b)` requires `a`'s domain to equal `b`'s wire — that shared middle type is
+what the value passes through. From the two codecs it derives three things
+automatically:
+
+- **Fidelity is the weaker of the two.** `iso ∘ lossy` is `lossy`; anything composed
+  with a [`partial`](/docs/guides/leaves/partial) is `partial`. The result can only
+  promise what its weakest link promises.
+- **Context is the intersection.** If both halves are
+  [contextual](/docs/concepts/context-requirement), the composed codec needs both
+  contexts, merged into one bag.
+- **Error paths thread through**, so a failure deep in a piped chain still reports
+  its full location.
+
+<Callout type="warn">
+    **Anti-pattern:** don't pipe _into_ a wire-asymmetric codec as `b` — an aliased
+    `enum_` or an `encode: 'omit'` object, whose decode input and encode output
+    differ. The middle type must be symmetric, so bimorph rejects that at compile
+    time rather than silently collapsing the two sides. Put the asymmetric codec on
+    the wire-facing end (`a`) instead.
+</Callout>
+
+## See also
+
+<Cards>
+    <Card title="The codec" href="/docs/concepts/the-codec" />
+    <Card title="Fidelity tiers" href="/docs/concepts/fidelity-tiers" />
+    <Card title="The context axis" href="/docs/concepts/context-requirement" />
+    <Card title="Chain two codecs into one" href="/docs/recipes/compose-two-codecs" />
+</Cards>

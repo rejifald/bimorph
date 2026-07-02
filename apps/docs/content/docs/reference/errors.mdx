@@ -1,0 +1,58 @@
+---
+title: 'Errors & results'
+description: 'DecodeError, ErrorTree, BimorphError, and the Result discriminated union the doors return.'
+---
+
+The error and result types every door speaks. A failing door either throws a
+`BimorphError` or hands you a `Result` whose `error` branch carries a `DecodeError`.
+
+## DecodeError
+
+The shape of every failure — thrown by the bare doors, and carried in the `error`
+branch of a `Result`.
+
+<AutoTypeTable path="../../src/index.ts" name="DecodeError" />
+
+## Result
+
+`safeDecode` and `safeEncode` return a `Result` — a plain discriminated union,
+`{ ok: true; value } | { ok: false; error }` — never a wrapper class.
+
+```ts twoslash
+import { enum_ } from 'bimorph';
+
+const Status = enum_([[1, 'active'], [0, 'inactive']], { onMiss: 'throw' });
+const r = Status.safeDecode(9);
+//    ^?
+```
+
+## ErrorTree
+
+The accumulate door, [`validate`](/docs/guides/doors/validate), returns a
+`Result<A, ErrorTree>`. An `ErrorTree` is a flat, path-keyed map of failures —
+`{ "shipping.postalCode": DecodeError }` — not a nested object.
+
+```ts twoslash
+import type { ErrorTree } from 'bimorph';
+```
+
+## BimorphError
+
+The `Error` subclass the bare doors throw. Its `detail` is the `DecodeError` above.
+
+```ts twoslash
+import { BimorphError } from 'bimorph';
+
+const e = new BimorphError({ path: '', code: 'miss', input: 9, message: 'no mapping' });
+const detail = e.detail;
+//    ^?
+```
+
+## See also
+
+<Cards>
+    <Card title="Doors, not flags" href="/docs/concepts/doors" />
+    <Card title="Guide: validate" href="/docs/guides/doors/validate" />
+    <Card title="Loud by default" href="/docs/concepts/loud-by-default" />
+    <Card title="Errors & pitfalls" href="/docs/errors" />
+</Cards>

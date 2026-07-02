@@ -1,0 +1,36 @@
+---
+title: 'Recover from an unmapped value instead of throwing'
+description: 'Pass onMiss a default or a resolver so an out-of-map wire value is repaired at the point of failure, with the standard error one raise() away.'
+---
+
+An upstream API keeps adding status values you haven't mapped, and you'd rather repair
+them than throw. Pass [`onMiss`](/docs/guides/enums/on-miss) a default or a
+[resolver](/docs/guides/recovery/resolver): an unmapped wire value is recovered at the
+point of failure, with the standard error still one `raise()` away.
+
+## Example
+
+```ts twoslash
+import { enum_ } from 'bimorph';
+
+// unmapped wires are repaired here — or raise() the standard error for the rest
+const Status = enum_([[1, 'active'], [0, 'inactive']], {
+    onMiss: (c): 'active' | 'inactive' => (c.input > 1 ? 'active' : c.raise()),
+});
+
+const label = Status.decode(5);
+//    ^?
+```
+
+`onMiss` widens the accepted decode input to the wire's primitive base (`number`
+here), because the point is to accept values outside the map. The resolver returns a
+domain value or calls `raise()` — so recovery stays deliberate, and genuinely
+unrecoverable values still fail loudly instead of decoding to something wrong.
+
+## See also
+
+<Cards>
+    <Card title="onMiss" href="/docs/guides/enums/on-miss" />
+    <Card title="The resolver" href="/docs/guides/recovery/resolver" />
+    <Card title="Error: miss" href="/docs/errors/miss" />
+</Cards>

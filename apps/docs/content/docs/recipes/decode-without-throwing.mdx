@@ -1,0 +1,39 @@
+---
+title: 'Decode untrusted input without a try/catch'
+description: 'Reach for safeDecode to get a Result, or decodeOr to fall back to a value, instead of wrapping the throwing door.'
+---
+
+You're decoding input you don't trust and don't want a throw to unwind the stack.
+Reach for [`safeDecode`](/docs/guides/doors/safe-doors) to get a `Result` you handle,
+or `decodeOr` to fall back to a value — no `try/catch` around the throwing door.
+
+## Example
+
+```ts twoslash
+import { enum_ } from 'bimorph';
+
+const Status = enum_([[1, 'active'], [0, 'inactive']], { onMiss: 'throw' });
+
+// a Result you handle...
+const result = Status.safeDecode(9);
+if (result.ok) result.value; // narrowed to 'active' | 'inactive'
+
+// ...or a fallback value, no branching
+const label = Status.decodeOr(9, 'inactive');
+//    ^?
+```
+
+`safeDecode` hands back `{ ok: true; value } | { ok: false; error }` — the same
+`error` the throwing door would raise. `decodeOr` skips the `Result` and always
+returns a value. Pick by whether you need to inspect the failure or just move past it.
+
+## See also
+
+<Cards>
+    <Card title="safeDecode & decodeOr" href="/docs/guides/doors/safe-doors" />
+    <Card title="Doors, not flags" href="/docs/concepts/doors" />
+    <Card
+        title="Collect every form error"
+        href="/docs/recipes/collect-every-form-error"
+    />
+</Cards>

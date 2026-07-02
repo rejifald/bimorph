@@ -1,0 +1,62 @@
+---
+title: '.bind()'
+description: 'Erase a codec’s context by binding it once, yielding an ordinary codec you can drop into object, array, and pipe.'
+---
+
+Call `.bind(ctx)` on a contextual codec to fix its context once and get back an
+ordinary, context-free codec. That's what makes contextual codecs composable — a
+bound codec drops into `object`, `array`, and `pipe` like any plain one.
+
+## Example
+
+```ts twoslash
+import { partial, object, field } from 'bimorph';
+
+// [!code fold:start]
+const Phone = partial<string, string, { region: string }>({
+    decode: (national, ctx) => ({ ok: true, value: `${ctx.region}:${national}` }),
+    encode: (e164) => e164,
+});
+// [!code fold:end]
+// bind the region once → an ordinary, context-free codec
+const usPhone = Phone.bind({ region: 'US' });
+
+usPhone.safeDecode('202-555-0100'); // no ctx argument any more
+
+// and it drops into a composite like any plain codec
+const Contact = object({ phone: field('phone', usPhone) });
+```
+
+## Options
+
+`.bind(ctx)` takes the context value once and returns a `Codec<A, B, void>` — the
+trailing `ctx` argument is gone from every door. Reach for it when the context is
+stable across many calls: a whole form, one render pass, a batch keyed to the same
+region.
+
+Binding is the bridge into composition. `object`, `array`, and `pipe` compose
+context-free codecs, so a contextual child has to lose its context first — either by
+binding it here, or by the composite itself staying contextual and threading the
+merged context down. The per-call `ctx` argument is the alternative when the context
+genuinely varies call to call.
+
+<Callout type="warn">
+    **Anti-pattern:** don't `.bind()` the same context inside a hot loop, minting a
+    fresh codec each iteration. Bind once, above the loop, and reuse the bound codec
+    — or pass `ctx` per call if it actually changes each time.
+</Callout>
+
+## See also
+
+<Cards>
+    <Card
+        title="Contextual codecs"
+        href="/docs/guides/context/contextual-codecs"
+    />
+    <Card title="The context axis" href="/docs/concepts/context-requirement" />
+    <Card title="object" href="/docs/guides/composites/object" />
+    <Card
+        title="Parse a value that needs a region"
+        href="/docs/recipes/localize-a-value-with-context"
+    />
+</Cards>

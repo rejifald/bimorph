@@ -1,0 +1,53 @@
+---
+title: 'lossy'
+description: 'Build a leaf codec that keeps its throwing doors but promises no clean round-trip — for cents↔Money and other precision-shedding maps.'
+---
+
+Reach for `lossy` when the mapping produces a usable value in both directions but
+not an exact round-trip — cents to a dollar amount, bytes to `"1.5 GB"`, Celsius to
+a rounded Fahrenheit.
+
+## Example
+
+```ts twoslash
+import { lossy } from 'bimorph';
+
+// cents (wire) ↔ dollars (domain). Float division sheds precision, so the
+// round-trip isn't guaranteed exact — hence lossy, not iso.
+const Money = lossy<number, number>({
+    decode: (cents) => cents / 100,
+    encode: (dollars) => Math.round(dollars * 100),
+});
+```
+
+## Options
+
+`lossy<A, B>` takes the same `{ decode, encode }` shape as `iso`. The only
+difference is the promise: `lossy` drops the round-trip guarantee but **keeps the
+throwing doors**. That distinction matters — `lossy` still asserts that a given
+`decode` succeeds; it only stops promising that encoding the result reproduces the
+input. Contrast [`partial`](/docs/guides/leaves/partial), where the failure is in
+the decode itself, so the throwing door is removed.
+
+Because precision loss is data-dependent, no creation-time check can catch it. The
+enforcement is a test: feed representative samples through
+[`assertRoundTrip`](/docs/guides/testing/assert-round-trip) and it throws on drift.
+
+<Callout type="warn">
+    **Anti-pattern:** don't rely on a `lossy` round-trip in code — reading a value
+    back with `encode(decode(b))` and assuming it equals `b`. If you need that
+    equality, the mapping is [`iso`](/docs/guides/leaves/iso); if it genuinely isn't,
+    a test is the only thing standing between you and silent drift.
+</Callout>
+
+## See also
+
+<Cards>
+    <Card
+        title="assertRoundTrip"
+        href="/docs/guides/testing/assert-round-trip"
+    />
+    <Card title="iso" href="/docs/guides/leaves/iso" />
+    <Card title="Fidelity tiers" href="/docs/concepts/fidelity-tiers" />
+    <Card title="Error: lossy" href="/docs/errors/lossy" />
+</Cards>

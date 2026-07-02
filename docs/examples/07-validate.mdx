@@ -1,0 +1,51 @@
+---
+title: validate — accumulate every failing path
+scenarios: [A5, B2, D4]
+---
+
+# `validate` — accumulate every failing path
+
+`decode`/`safeDecode` fail **fast** — they stop at the first bad field. For untrusted
+composite input (a form, a CSV row, a nested DTO) you usually want *every* problem at
+once. `validate` is that door: it collects each failure into a flat, path-keyed
+`ErrorTree` that drops straight onto form libraries.
+
+It exists on composites only — `object`, `array`, `tuple`. A leaf has a single thing to
+fail, so there's nothing to accumulate and the door isn't on its type.
+
+## The door returns a path-keyed `ErrorTree`
+
+```ts twoslash
+import { object, field, enum_ } from 'bimorph'
+
+const Status = enum_([['active', 'Active'], ['inactive', 'Inactive']])
+const Role = enum_([['admin', 'Admin'], ['member', 'Member']])
+
+const User = object({
+  status: field('status', Status),
+  role: field('role', Role),
+})
+
+// validate collects EVERY failing field instead of throwing on the first:
+const result = User.validate({ status: 'active', role: 'admin' })
+//    ^?
+```
+
+On failure, `result.error` is keyed by field path — `"status"`, `"address.city"`,
+`"[2].name"` for nested composites — so `Object.keys(result.error)` is your list of
+broken fields, ready for a form library. (The accumulation behaviour across nested
+objects and arrays is covered by the runtime gate, `npm run check:runtime`.)
+
+## Leaves don't offer `validate`
+
+A single `enum_`/`iso` has one thing to fail — nothing to accumulate — so the door is
+absent from its type entirely:
+
+```ts twoslash
+// @errors: 2339
+import { enum_ } from 'bimorph'
+
+const Status = enum_([['active', 'Active']])
+
+Status.validate('active')
+```

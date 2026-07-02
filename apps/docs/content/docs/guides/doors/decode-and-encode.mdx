@@ -1,0 +1,51 @@
+---
+title: 'decode & encode'
+description: 'The bare verbs that throw a path-carrying error on failure — the door you reach for when you assert success.'
+---
+
+Reach for the bare `decode` and `encode` when you assert the mapping succeeds — a
+trusted source, or a place where a failure should stop the program. They return the
+value directly and throw a path-carrying `BimorphError` on failure.
+
+## Example
+
+```ts twoslash
+import { enum_ } from 'bimorph';
+
+const Status = enum_([[1, 'active'], [0, 'inactive']]);
+
+const label = Status.decode(1);
+//    ^?
+
+const wire = Status.encode('active');
+//    ^?
+```
+
+## Options
+
+`decode(b)` returns the domain value and throws if the wire value can't be mapped;
+`encode(a)` returns the wire value and throws if the domain value has no wire form.
+The thrown [`BimorphError`](/docs/reference/errors) carries a `DecodeError` with a
+`path`, `code`, `input`, and `message`, so the failure points at the exact field
+even deep inside a composite.
+
+These are the doors you reach for when a failure is exceptional. When it's expected,
+use [`safeDecode`](/docs/guides/doors/safe-doors) for a `Result` or `decodeOr` for a
+fallback. On a [`partial`](/docs/guides/leaves/partial) codec the throwing `decode`
+doesn't exist — its inverse can fail, so you're routed to the safe doors.
+
+<Callout type="warn">
+    **Anti-pattern:** don't wrap `decode` in a `try/catch` to turn a throw into a
+    handled result — that's exactly what
+    [`safeDecode`](/docs/guides/doors/safe-doors) is, and it hands you the _same_
+    error object with none of the boilerplate.
+</Callout>
+
+## See also
+
+<Cards>
+    <Card title="safeDecode & decodeOr" href="/docs/guides/doors/safe-doors" />
+    <Card title="validate" href="/docs/guides/doors/validate" />
+    <Card title="Loud by default" href="/docs/concepts/loud-by-default" />
+    <Card title="Reference: Errors & results" href="/docs/reference/errors" />
+</Cards>

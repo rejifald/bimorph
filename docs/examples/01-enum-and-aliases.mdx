@@ -1,0 +1,81 @@
+---
+title: Enums & aliases
+scenarios: [A2, D2, D6]
+---
+
+# Enums & aliases
+
+The original motivating case: define a discrete map once, get both directions. Every
+snippet below is type-checked against the real library types via twoslash.
+
+## Bidirectional out of the box
+
+```ts twoslash
+import { enum_ } from 'bimorph'
+
+const Status = enum_([
+  [1, 'active'],
+  [0, 'inactive'],
+])
+
+const label = Status.decode(1)
+//    ^?
+
+const code = Status.encode('active')
+//    ^?
+```
+
+## Aliases — wide decode, narrow encode
+
+Legacy spellings must **decode** to the canonical value, but **encode** must only ever
+emit the canonical wire value. The type system enforces exactly that: the encode
+output union excludes the aliases.
+
+```ts twoslash
+import { enum_ } from 'bimorph'
+
+const Flag = enum_([['search_ui_v2', 'SearchUiV2']], {
+  aliases: [
+    ['new-search-ui', 'SearchUiV2'],
+    ['newSearchUI', 'SearchUiV2'],
+  ],
+})
+
+// legacy spellings decode fine…
+Flag.decode('new-search-ui')
+Flag.decode('newSearchUI')
+
+// …but encode is typed to the narrow, canonical-only union:
+const canonical: 'search_ui_v2' = Flag.encode('SearchUiV2')
+//    ^?
+```
+
+## The decode input is a closed union
+
+An unknown wire value is a compile error, not a runtime surprise — the accepted input
+is exactly `primaries | aliases`.
+
+```ts twoslash
+// @errors: 2345
+import { enum_ } from 'bimorph'
+
+const Flag = enum_([['search_ui_v2', 'SearchUiV2']], {
+  aliases: [['old-name', 'SearchUiV2']],
+})
+
+Flag.decode('not-a-known-flag')
+```
+
+## An alias must target a declared domain value
+
+Rule 3 from the design, enforced at creation by the type of the `aliases` option — an
+alias whose target isn't a declared domain value fails to match any `enum_` overload:
+
+```ts twoslash
+// @errors: 2769
+import { enum_ } from 'bimorph'
+
+enum_([['active', 'Active']], {
+  aliases: [['ACTIVE', 'Nonexistent']],
+})
+```

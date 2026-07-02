@@ -1,0 +1,70 @@
+---
+title: 'field'
+description: 'Declare one wire↔domain field, rename its key, and drop it from encode output with encode: "omit" or "omit-if".'
+---
+
+Reach for `field` inside an [`object`](/docs/guides/composites/object) to declare one
+wire-key ↔ domain-key pairing: which wire key it reads, the codec that converts it,
+and whether it participates in encode output.
+
+## Example
+
+```ts twoslash
+import { object, field, iso } from 'bimorph';
+
+// [!code fold:start]
+const str = iso<string, string>({ decode: (s) => s, encode: (s) => s });
+// [!code fold:end]
+const User = object({
+    name: field('full_name', str),
+    // created_at flows in on decode but is dropped from encode output entirely
+    createdAt: field('created_at', str, { encode: 'omit' }),
+});
+
+const wire = User.encode({ name: 'Ada', createdAt: '2020-01-01' });
+//    ^?
+```
+
+The `encode` output type has **no** `created_at` — an `omit` field is structurally
+absent from the wire you send back.
+
+## Options
+
+`field(wireKey, codec)` is the plain form: read `wireKey`, convert with `codec`.
+The third argument controls encode participation:
+
+- **`{ encode: 'omit' }`** — the field flows in on decode but never comes back out.
+  Its wire key vanishes from the encode output type. This is for genuinely read-only
+  wire fields — server-managed ids, `created_at`, derived config.
+- **`{ encode: 'omit-if', when: (v) => … }`** — drop the field only when the
+  predicate holds, so it stays _optional_ in the output type. Useful for shedding
+  defaults, like a `page=1` that clutters a URL.
+
+```ts twoslash
+import { field, iso } from 'bimorph';
+
+// [!code fold:start]
+const num = iso<number, number>({ decode: (n) => n, encode: (n) => n });
+// [!code fold:end]
+// drop page=1 defaults from the wire; the field stays optional in the output
+const page = field('page', num, { encode: 'omit-if', when: (p) => p === 1 });
+```
+
+<Callout type="warn">
+    **Anti-pattern:** don't mark a field `encode: 'omit'` if you ever need to send
+    its value back — `omit` makes the round-trip structurally unable to resend it,
+    which is the point for read-only fields but a silent data-loss bug for anything
+    you own. If it's only _sometimes_ omitted, that's `omit-if`.
+</Callout>
+
+## See also
+
+<Cards>
+    <Card title="object" href="/docs/guides/composites/object" />
+    <Card title="group" href="/docs/guides/composites/group" />
+    <Card
+        title="Keep server-managed fields out"
+        href="/docs/recipes/drop-server-managed-fields-on-encode"
+    />
+    <Card title="Reference: Constructors" href="/docs/reference/constructors" />
+</Cards>

@@ -1,0 +1,44 @@
+---
+title: 'Parse a value that needs a region or locale'
+description: 'Make a codec contextual so decode requires the region it needs, then bind the context once for a whole form.'
+---
+
+A value can't be parsed without a runtime hint the value doesn't carry — a national
+phone number needs a region, a currency symbol needs a locale. Make the codec
+[contextual](/docs/guides/context/contextual-codecs): the type requires the `ctx`, and
+you either pass it per call or [bind](/docs/guides/context/bind) it once.
+
+## Example
+
+```ts twoslash
+import { partial } from 'bimorph';
+
+// national ↔ E.164 needs a region; the type won't let you forget it
+const Phone = partial<string, string, { region: string }>({
+    decode: (national, ctx) => ({ ok: true, value: `+${ctx.region}${national}` }),
+    encode: (e164) => e164,
+});
+
+// pass it per call...
+Phone.safeDecode('5550100', { region: '1' });
+
+// ...or bind once for a whole form, then use it context-free
+const usPhone = Phone.bind({ region: '1' });
+usPhone.safeDecode('5550100');
+```
+
+`decode` without a `ctx` is a compile error, so the region can't be silently dropped.
+`.bind()` fixes it once and hands back an ordinary codec — the form that binds `'1'`
+never repeats it, and the bound codec drops into `object` and `pipe` like any plain
+one.
+
+## See also
+
+<Cards>
+    <Card
+        title="Contextual codecs"
+        href="/docs/guides/context/contextual-codecs"
+    />
+    <Card title=".bind()" href="/docs/guides/context/bind" />
+    <Card title="The context axis" href="/docs/concepts/context-requirement" />
+</Cards>

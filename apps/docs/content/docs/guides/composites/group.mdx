@@ -1,0 +1,72 @@
+---
+title: 'group'
+description: 'Collapse N wire fields into one domain field — a checkbox group into a single enum.'
+---
+
+Reach for `group` inside an [`object`](/docs/guides/composites/object) when several
+wire fields collectively encode _one_ domain value — three booleans that mean one
+`visibility`, a set of checkboxes that mean one enum. It maps N wire keys to a single
+domain field.
+
+## Example
+
+```ts twoslash
+import { object, group, iso } from 'bimorph';
+
+// [!code fold:start]
+type Visibility = 'public' | 'private' | 'unlisted';
+type Flags = {
+    is_public: boolean;
+    is_private: boolean;
+    is_unlisted: boolean;
+};
+// [!code fold:end]
+// the inner codec maps the sub-object of grouped wire keys ↔ one domain value
+const visibility = iso<Visibility, Flags>({
+    decode: (w) =>
+        w.is_public ? 'public' : w.is_private ? 'private' : 'unlisted',
+    encode: (v) => ({
+        is_public: v === 'public',
+        is_private: v === 'private',
+        is_unlisted: v === 'unlisted',
+    }),
+});
+
+const Post = object({
+    visibility: group(['is_public', 'is_private', 'is_unlisted'], visibility),
+});
+
+const domain = Post.decode({ is_public: true, is_private: false, is_unlisted: false });
+//    ^?
+```
+
+## Options
+
+`group(wireKeys, codec)` sits in an `object` like a `field`, but instead of one wire
+key it owns **all** the keys in `wireKeys`, and its `codec` maps the sub-object of
+those keys ↔ the single domain value. The grouped keys all contribute to the
+composite's wire shape; the one domain key is what your app sees.
+
+Invalid wire states that no creation-time check can catch — all-false, two-true —
+are the inner codec's job: make its `decode` a [`partial`](/docs/guides/leaves/partial)
+that returns a `Result`, or give it an [`onMiss`](/docs/guides/enums/on-miss)
+resolver.
+
+<Callout type="warn">
+    **Anti-pattern:** don't reach for `group` when the wire fields are actually
+    independent domain values — three unrelated booleans that stay three booleans.
+    `group` is specifically for a set that _together_ encodes one value; independent
+    fields are just separate [`field`](/docs/guides/composites/field)s.
+</Callout>
+
+## See also
+
+<Cards>
+    <Card title="object" href="/docs/guides/composites/object" />
+    <Card title="field" href="/docs/guides/composites/field" />
+    <Card
+        title="Collapse checkboxes to an enum"
+        href="/docs/recipes/collapse-checkboxes-to-an-enum"
+    />
+    <Card title="partial" href="/docs/guides/leaves/partial" />
+</Cards>

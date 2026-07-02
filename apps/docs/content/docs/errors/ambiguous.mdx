@@ -1,0 +1,37 @@
+---
+title: 'ambiguous'
+description: 'One wire value decoded to two different domain values, so the decode index is not a function.'
+---
+
+## What you'll see
+
+A `BimorphError` with `code: "ambiguous"` and the message
+`wire <value> decodes to two different domain values`.
+
+## Why it happens
+
+Two entries in an [`enum_`](/docs/guides/enums/enum) — primaries, aliases, or one of
+each — map the **same wire value** to **different domain values**. Decode has to be a
+function: one wire in, one domain out. When two entries disagree on what a wire
+decodes to, there's no single answer, so it throws at creation.
+
+This is a real bug that [aliases](/docs/guides/enums/aliases) do **not** suppress —
+aliases are many wire values → one domain value, the opposite shape. An alias that
+reused a wire already mapped to a different domain would trip this same check.
+
+## How to fix
+
+Remove or correct the conflicting entry so each wire value appears once on the decode
+side. If you genuinely need one wire value to mean different things in different
+situations, that's decode ambiguity, not a mapping — a locale or other
+[context](/docs/concepts/context-requirement) has to disambiguate it, so model it as
+a contextual codec whose `decode` chooses using the `ctx`.
+
+## Related
+
+<Cards>
+    <Card title="enum_" href="/docs/guides/enums/enum" />
+    <Card title="Aliases" href="/docs/guides/enums/aliases" />
+    <Card title="Intentional many-to-one" href="/docs/concepts/aliases" />
+    <Card title="The context axis" href="/docs/concepts/context-requirement" />
+</Cards>

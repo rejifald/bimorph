@@ -1,0 +1,39 @@
+---
+title: 'lossy'
+description: 'A round-trip sample did not come back equal, so assertRoundTrip reported drift a lossy mapping shed.'
+---
+
+## What you'll see
+
+A `BimorphError` with `code: "lossy"` and a message like
+`round-trip drift: <input> → <output>`, thrown from
+[`assertRoundTrip`](/docs/guides/testing/assert-round-trip) in your test suite — not
+from a normal `decode` or `encode` call.
+
+## Why it happens
+
+`assertRoundTrip` ran a sample through `decode` then `encode` and the result wasn't
+structurally equal to the input. The mapping shed something on the way — a rounding
+step, a precision loss, a normalization — which is exactly what the
+[`lossy`](/docs/guides/leaves/lossy) tier declares can happen but can't check at
+creation time.
+
+## How to fix
+
+Decide whether the drift is the mapping working as intended:
+
+- **If the loss is genuine and acceptable** — cents to a rounded dollar amount —
+  the sample is proving the tier honest. Adjust the samples to the precision you
+  actually promise, or accept that this pair doesn't round-trip exactly.
+- **If the loss is a bug** — the `encode` doesn't invert the `decode` — fix the
+  functions. If they _should_ round-trip exactly, the mapping is
+  [`iso`](/docs/guides/leaves/iso), not `lossy`.
+
+## Related
+
+<Cards>
+    <Card title="assertRoundTrip" href="/docs/guides/testing/assert-round-trip" />
+    <Card title="lossy" href="/docs/guides/leaves/lossy" />
+    <Card title="Fidelity tiers" href="/docs/concepts/fidelity-tiers" />
+    <Card title="iso" href="/docs/guides/leaves/iso" />
+</Cards>

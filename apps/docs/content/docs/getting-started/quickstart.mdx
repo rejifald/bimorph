@@ -1,0 +1,74 @@
+---
+title: 'Quickstart'
+description: 'Define your first codec from one mapping and call it in both directions in five minutes.'
+---
+
+Define one codec — a mapping between a wire value and a domain value — and call
+it both ways: `decode` reads the external form in, `encode` writes the domain
+form back out. You write the mapping once; both directions come from it.
+
+## Install
+
+```package-install
+bimorph
+```
+
+## Define a codec
+
+Reach for `enum_` when a fixed set of wire values maps to a fixed set of domain
+values — the status codes, kinds, and flags an API sends as ints or short
+strings. Pass the pairs `[wire, domain]`; the setup imports fold away so the
+block opens on the mapping itself.
+
+```ts twoslash
+// [!code fold:start]
+import { enum_ } from 'bimorph';
+// [!code fold:end]
+const Status = enum_([
+    [1, 'active'],
+    [0, 'inactive'],
+]);
+```
+
+## Call it both ways
+
+`decode` takes a wire value and returns the domain value; `encode` takes the
+domain value and returns the wire value. Hover either result — the type is
+narrowed to exactly the values in the mapping, not a loose `string` or `number`.
+
+```ts twoslash
+// [!code fold:start]
+import { enum_ } from 'bimorph';
+
+const Status = enum_([
+    [1, 'active'],
+    [0, 'inactive'],
+]);
+// [!code fold:end]
+const label = Status.decode(1);
+//    ^?
+
+const code = Status.encode('active');
+//    ^?
+```
+
+A wire value that isn't in the mapping is a compile error, not a runtime
+surprise — the accepted decode input is exactly the keys you declared. To accept
+values outside the map on purpose, you widen the input with
+[`onMiss`](/docs/guides/enums/on-miss).
+
+## Where to go next
+
+A codec is one primitive with a few axes. What each door returns on failure is
+[Doors, not flags](/docs/concepts/doors); whether a mapping promises a clean
+round-trip is a [fidelity tier](/docs/concepts/fidelity-tiers); and mapping a
+whole record field-by-field is [`object`](/docs/guides/composites/object).
+
+<Cards>
+    <Card title="The codec" href="/docs/concepts/the-codec" />
+    <Card title="enum_" href="/docs/guides/enums/enum" />
+    <Card
+        title="Reverse a lookup table"
+        href="/docs/recipes/reverse-a-lookup-table"
+    />
+</Cards>

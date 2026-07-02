@@ -1,0 +1,39 @@
+---
+title: 'Accept legacy values but only ever write the canonical one'
+description: 'Declare deprecated spellings as aliases so they decode, while encode stays typed to the single canonical wire value a migration is allowed to emit.'
+---
+
+You're migrating a field whose wire values were renamed over time. Old data still
+carries the legacy spellings, but new data must be written with the canonical one.
+Declare the old spellings as [`aliases`](/docs/guides/enums/aliases): they decode,
+and `encode` is typed so it can only ever emit the canonical value.
+
+## Example
+
+```ts twoslash
+import { enum_ } from 'bimorph';
+
+const Flag = enum_([['search_v2', 'SearchV2']], {
+    aliases: [
+        ['new-search', 'SearchV2'],
+        ['newSearchUI', 'SearchV2'],
+    ],
+});
+
+Flag.decode('new-search'); // 'SearchV2' — a legacy spelling still decodes
+
+const wire = Flag.encode('SearchV2');
+//    ^?
+```
+
+The `encode` return type is the narrow, canonical-only union — a downstream consumer
+_cannot_ receive a deprecated spelling, so the migration provably only ever writes
+`'search_v2'`.
+
+## See also
+
+<Cards>
+    <Card title="Aliases" href="/docs/guides/enums/aliases" />
+    <Card title="Intentional many-to-one" href="/docs/concepts/aliases" />
+    <Card title="onCollision" href="/docs/guides/enums/on-collision" />
+</Cards>

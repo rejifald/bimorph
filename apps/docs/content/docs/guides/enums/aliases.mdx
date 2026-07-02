@@ -1,0 +1,63 @@
+---
+title: 'Aliases'
+description: 'Add decode-only spellings whose wire values decode to a canonical domain value but never appear in encode output.'
+---
+
+Add `aliases` when several wire spellings mean the same thing — a renamed flag, a
+legacy status string — and you want the old ones to keep decoding while `encode`
+only ever writes the canonical value.
+
+## Example
+
+```ts twoslash
+import { enum_ } from 'bimorph';
+
+const Flag = enum_([['search_v2', 'SearchV2']], {
+    aliases: [
+        ['new-search', 'SearchV2'],
+        ['newSearchUI', 'SearchV2'],
+    ],
+});
+
+Flag.decode('new-search'); // 'SearchV2' — a legacy spelling still decodes
+
+const wire = Flag.encode('SearchV2');
+//    ^?
+```
+
+## Options
+
+`aliases` is an array of `[wire, domain]` pairs, like the primary entries, with two
+rules the types and runtime enforce:
+
+- **The domain must be a declared primary's value.** An alias pointing at a domain
+  value no primary produces is a creation error.
+- **Aliases are decode-only.** They populate the decode index but never the encode
+  index — a permanent, implicit `encode: "omit"` on that spelling. So `decode`
+  accepts the wide union of every spelling, while `encode` returns the narrow,
+  canonical-only union.
+
+Declaring an alias is you asserting the domain-side collision is intentional, so it
+suppresses the [`collision`](/docs/errors/collision) diagnostic for that pair only —
+never globally.
+
+<Callout type="warn">
+    **Anti-pattern:** don't use `aliases` for one wire that should decode to
+    _several_ domain values depending on context — `$` → USD | CAD | AUD. That's
+    decode ambiguity, and a locale resolves it, so it belongs to a
+    [contextual](/docs/concepts/context-requirement) codec. Aliases are strictly
+    many-wire → one-domain.
+</Callout>
+
+## See also
+
+<Cards>
+    <Card title="enum_" href="/docs/guides/enums/enum" />
+    <Card title="onCollision" href="/docs/guides/enums/on-collision" />
+    <Card title="Intentional many-to-one" href="/docs/concepts/aliases" />
+    <Card
+        title="Accept legacy values"
+        href="/docs/recipes/migrate-legacy-enum-values"
+    />
+    <Card title="Error: ambiguous" href="/docs/errors/ambiguous" />
+</Cards>

@@ -1,0 +1,48 @@
+---
+title: 'Errors & pitfalls'
+description: 'How a BimorphError is shaped, the code-to-docs contract, and an index of every DecodeError code.'
+---
+
+When a mapping fails, the bare [doors](/docs/guides/doors/decode-and-encode) throw a
+`BimorphError`. Its `detail` is a `DecodeError` carrying a stable `code` — and each
+code has a page here, so a thrown error routes straight to its remediation.
+
+## The code-to-docs contract
+
+A `BimorphError.detail.code` is one of five stable strings, and the string is the
+slug of its catalog page. Read the `code`, and you know where to look.
+
+```ts twoslash
+import { enum_, BimorphError } from 'bimorph';
+
+const Status = enum_([[1, 'active'], [0, 'inactive']], { onMiss: 'throw' });
+
+try {
+    Status.decode(9);
+} catch (e) {
+    if (e instanceof BimorphError) {
+        e.detail.code; // 'miss' → this page is /errors/miss
+        e.detail.path; // where in the structure it failed
+    }
+}
+```
+
+The `code`s are an API: once published, a slug never changes.
+
+## Every code
+
+<Cards>
+    <Card title="miss" href="/docs/errors/miss" />
+    <Card title="ambiguous" href="/docs/errors/ambiguous" />
+    <Card title="collision" href="/docs/errors/collision" />
+    <Card title="lossy" href="/docs/errors/lossy" />
+    <Card title="malformed" href="/docs/errors/malformed" />
+</Cards>
+
+## See also
+
+<Cards>
+    <Card title="Loud by default" href="/docs/concepts/loud-by-default" />
+    <Card title="Doors, not flags" href="/docs/concepts/doors" />
+    <Card title="Reference: Errors & results" href="/docs/reference/errors" />
+</Cards>

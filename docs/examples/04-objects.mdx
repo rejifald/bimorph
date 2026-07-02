@@ -1,0 +1,99 @@
+---
+title: Objects — rename, encode-omit, context intersection
+scenarios: [A4, A5, B4, E3]
+---
+
+# Objects
+
+`object` maps a struct field-by-field: rename wire↔domain keys, drop server-managed
+fields on encode, and — the interesting part — **merge** the contexts of any contextual
+fields into a single bag.
+
+## Rename + encode-omit
+
+`created_at` is read on the way in but must never be written back. The encode output
+type structurally lacks it, so you can't accidentally send it.
+
+```ts twoslash
+import { object, field, iso, enum_ } from 'bimorph'
+
+const DateIso = iso<Date, string>({
+  decode: (s) => new Date(s),
+  encode: (d) => d.toISOString(),
+})
+const Status = enum_([
+  [1, 'active'],
+  [0, 'inactive'],
+])
+
+const User = object({
+  status: field('user_status', Status),
+  createdAt: field('created_at', DateIso, { encode: 'omit' }),
+})
+
+const domain = User.decode({ user_status: 1, created_at: '2026-07-02T00:00:00Z' })
+//    ^?
+
+const wire = User.encode(domain)
+//    ^?
+```
+
+The server-managed field is gone from the encode output — accessing it is an error:
+
+```ts twoslash
+// @errors: 2339
+import { object, field, iso, enum_ } from 'bimorph'
+
+const DateIso = iso<Date, string>({ decode: (s) => new Date(s), encode: (d) => d.toISOString() })
+const Status = enum_([[1, 'active'], [0, 'inactive']])
+
+const User = object({
+  status: field('user_status', Status),
+  createdAt: field('created_at', DateIso, { encode: 'omit' }),
+})
+
+const wire = User.encode(User.decode({ user_status: 1, created_at: '2026-01-01T00:00:00Z' }))
+wire.created_at
+```
+
+## Context intersection
+
+Two contextual fields need different contexts; the object requires **both**, merged
+into one argument. Non-contextual fields (a plain enum) add no context requirement.
+
+```ts twoslash
+import { object, field, iso } from 'bimorph'
+
+const Phone = iso<string, string, { region: string }>({
+  decode: (national, { region }) => `+${region === 'US' ? '1' : '44'}${national.replace(/\D/g, '')}`,
+  encode: (e164) => e164,
+})
+const Amount = iso<number, string, { locale: string }>({
+  decode: (s) => Number(s.replace(/[^0-9.]/g, '')),
+  encode: (n) => String(n),
+})
+
+const Form = object({
+  phone: field('phone', Phone),
+  amount: field('amount', Amount),
+})
+
+const ctx = { region: 'US', locale: 'en-US' }
+const domain = Form.decode({ phone: '(415) 555-2671', amount: '$1,999.00' }, ctx)
+//    ^?
+```
+
+Supplying only one context (or none) is a compile error — you can't forget a field's
+context:
+
+```ts twoslash
+// @errors: 2554
+import { object, field, iso } from 'bimorph'
+
+const Phone = iso<string, string, { region: string }>({ decode: (n, { region }) => n, encode: (e) => e })
+const Amount = iso<number, string, { locale: string }>({ decode: (s) => Number(s), encode: (n) => String(n) })
+
+const Form = object({ phone: field('phone', Phone), amount: field('amount', Amount) })
+
+Form.decode({ phone: 'x', amount: '1' })
+```

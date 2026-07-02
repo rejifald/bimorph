@@ -1,0 +1,60 @@
+---
+title: 'Resolver types'
+description: 'Resolver, ResolveContext, OnMiss, and OnCollision — the recovery type surface.'
+---
+
+The types behind recovery: the resolver function, the context it receives, and the
+`onMiss` / `onCollision` presets that desugar to it. The
+[resolver guide](/docs/guides/recovery/resolver) shows them in use.
+
+## ResolveContext
+
+What a resolver receives to recover a failed mapping — or re-raise the standard
+error.
+
+<AutoTypeTable path="../../src/index.ts" name="ResolveContext" />
+
+## Resolver
+
+`Resolver<In, Out, Ctx>` is `(c: ResolveContext<In, Out, Ctx>) => Out` — typed to the
+target `Out`, so the escape hatch never widens to `any`.
+
+```ts twoslash
+import type { Resolver } from 'bimorph';
+
+// recover an unmapped number to a status, or raise()
+type StatusResolver = Resolver<number, 'active' | 'inactive'>;
+```
+
+## OnMiss
+
+`OnMiss<In, Out, Ctx>` is the decode-side miss policy — a union of the preset forms
+and a full resolver:
+
+```ts twoslash
+import type { OnMiss } from 'bimorph';
+
+// "throw" | { default: Out } | Resolver<In, Out, Ctx>
+type StatusOnMiss = OnMiss<number, 'active' | 'inactive'>;
+```
+
+## OnCollision
+
+`OnCollision<Domain>` is the creation-time policy when two primary entries share a
+domain value: `"throw"` (default), `"first-wins"`, `"last-wins"`, or a
+`(domain, wires) => winner` picker.
+
+```ts twoslash
+import type { OnCollision } from 'bimorph';
+
+type StatusOnCollision = OnCollision<'active' | 'inactive'>;
+```
+
+## See also
+
+<Cards>
+    <Card title="The resolver" href="/docs/guides/recovery/resolver" />
+    <Card title="onMiss" href="/docs/guides/enums/on-miss" />
+    <Card title="onCollision" href="/docs/guides/enums/on-collision" />
+    <Card title="Errors & results" href="/docs/reference/errors" />
+</Cards>

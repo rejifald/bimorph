@@ -1,0 +1,66 @@
+---
+title: 'Introduction'
+description: 'What a codec is, the reverse-mapping pain it removes, and how this documentation is organized.'
+---
+
+bimorph is a library for **bidirectional data mapping**: you define a mapping once
+and get both directions from it — `decode` reads an external value into your domain,
+`encode` writes it back out. It exists because most real mappings don't invert
+cleanly, and pretending they do is how a wrong reverse ships.
+
+## The pain it removes
+
+A lookup object gives you one direction cleanly and leaves you to hand-write the
+other — where it drifts the moment someone edits one half:
+
+```ts twoslash
+const STATUSES = { 0: 'inactive', 1: 'active' } as const;
+
+const label = STATUSES[1]; // easy — the forward direction
+
+// the reverse: hand-written, untyped, and loose
+const code = Object.entries(STATUSES).find(([, v]) => v === 'active')?.[0];
+//    ^?
+```
+
+A codec keeps the pair together, so one declaration is both directions and the
+result is narrowed, not `string | undefined`:
+
+```ts twoslash
+import { enum_ } from 'bimorph';
+
+const Status = enum_([
+    [0, 'inactive'],
+    [1, 'active'],
+]);
+
+const label = Status.decode(1);
+const code = Status.encode('active');
+//    ^?
+```
+
+## How these docs are organized
+
+- **[Concepts](/docs/concepts/the-codec)** — why the API is shaped the way it is:
+  the codec, its doors, its fidelity tiers, and the context axis. Read these to
+  predict how a feature behaves.
+- **[Guides](/docs/guides/enums/enum)** — one page per export. How to reach for
+  `iso`, `enum_`, `object`, `pipe`, and the rest.
+- **[Recipes](/docs/recipes)** — whole tasks in a single block, with links down to
+  the guides for depth.
+- **[Reference](/docs/reference/codec-types)** — the exact type shapes, generated
+  from source.
+- **[Errors & pitfalls](/docs/errors)** — one page per `DecodeError` code a thrown
+  error can carry.
+
+## See also
+
+<Cards>
+    <Card title="Installation" href="/docs/getting-started/installation" />
+    <Card title="Quickstart" href="/docs/getting-started/quickstart" />
+    <Card title="The codec" href="/docs/concepts/the-codec" />
+    <Card
+        title="Coming from Zod or io-ts"
+        href="/docs/getting-started/coming-from-zod"
+    />
+</Cards>

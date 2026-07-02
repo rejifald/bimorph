@@ -1,0 +1,48 @@
+---
+title: 'Collapse several wire flags into one domain value'
+description: 'Fold a set of booleans — a checkbox group — into a single enum with group, mapping N wire keys to one domain field.'
+---
+
+The wire carries a value as a set of mutually-exclusive booleans — `is_public`,
+`is_private`, `is_unlisted` — but your domain wants one `visibility`. Fold them with
+[`group`](/docs/guides/composites/group): it maps the N wire keys to a single domain
+field, in both directions.
+
+## Example
+
+```ts twoslash
+import { object, group, iso } from 'bimorph';
+
+// [!code fold:start]
+type Visibility = 'public' | 'private' | 'unlisted';
+type Flags = { is_public: boolean; is_private: boolean; is_unlisted: boolean };
+const visibility = iso<Visibility, Flags>({
+    decode: (w) =>
+        w.is_public ? 'public' : w.is_private ? 'private' : 'unlisted',
+    encode: (v) => ({
+        is_public: v === 'public',
+        is_private: v === 'private',
+        is_unlisted: v === 'unlisted',
+    }),
+});
+// [!code fold:end]
+const Post = object({
+    visibility: group(['is_public', 'is_private', 'is_unlisted'], visibility),
+});
+
+const domain = Post.decode({ is_public: true, is_private: false, is_unlisted: false });
+//    ^?
+```
+
+The three booleans contribute to the wire shape, but your domain sees one
+`visibility`. Invalid wire states no creation check can catch — all-false, two-true —
+are the inner codec's job: make its `decode` a [`partial`](/docs/guides/leaves/partial)
+that returns a `Result`.
+
+## See also
+
+<Cards>
+    <Card title="group" href="/docs/guides/composites/group" />
+    <Card title="object" href="/docs/guides/composites/object" />
+    <Card title="partial" href="/docs/guides/leaves/partial" />
+</Cards>

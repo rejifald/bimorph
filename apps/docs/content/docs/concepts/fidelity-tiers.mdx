@@ -1,0 +1,73 @@
+---
+title: 'Fidelity tiers'
+description: 'How iso, lossy, and partial encode a mapping’s round-trip guarantee in the type, so a partial mapping cannot offer a throwing decode you would be wrong to trust.'
+---
+
+A codec's fidelity tier — `iso`, `lossy`, or `partial` — states what round-trip it
+promises, and the type enforces the promise.
+
+## Why it's shaped this way
+
+Not every mapping inverts cleanly, and pretending otherwise is how a plausible,
+wrong reverse ships. The tier makes the round-trip guarantee part of the type, so a
+caller can read it instead of assuming it.
+
+| Tier           | Promise                                                  | Throwing door on the failing direction |
+| -------------- | ------------------------------------------------------- | -------------------------------------- |
+| `iso<A,B>`     | `decode(encode(a)) === a` **and** `encode(decode(b)) === b` | yes                                |
+| `lossy<A,B>`   | neither round-trip promised                             | yes                                    |
+| `partial<A,B>` | a direction can fail on otherwise-valid input           | **no — `safe*` / `validate` / `*Or` only** |
+
+- **`iso`** — `null`↔`undefined`, an enum↔int with no reserved bits: the value
+  survives both ways unchanged.
+- **`lossy`** — cents↔dollars, bytes↔`"1.5 GB"`: the value survives, but an exact
+  round-trip doesn't, because the transform sheds precision.
+- **`partial`** — `"First Last"`↔`{ first, last }`: any inverse that is guesswork.
+
+**Partial removes the throwing door at the type level.** A bare `.decode()` reads
+as "I assert this succeeds". For a mapping whose inverse is genuine guesswork, that
+assertion is a lie — so the type simply doesn't offer it. You're forced through
+`safeDecode`, `validate`, or `decodeOr`, and must acknowledge the failure the
+inverse can produce.
+
+```ts twoslash
+// @errors: 2551
+import { partial } from 'bimorph';
+
+const Name = partial<{ first: string; last: string }, string>({
+    decode: (full) => {
+        const [first, ...rest] = full.split(' ');
+        return { ok: true, value: { first, last: rest.join(' ') } };
+    },
+    encode: (n) => `${n.first} ${n.last}`,
+});
+
+Name.safeDecode('Ada Lovelace'); // fine — always available
+Name.decode('Ada Lovelace'); // no throwing decode on a partial
+```
+
+## How it relates
+
+The `lossy` tier makes no creation-time promise it can enforce — precision loss is
+data-dependent — so the only enforcement is
+[`assertRoundTrip`](/docs/guides/testing/assert-round-trip) in your test suite.
+
+Which [doors](/docs/concepts/doors) a codec exposes follows directly from its tier:
+`partial` is exactly the tier that drops the throwing `decode`.
+
+A mapping that looks `partial` can sometimes become clean once you feed it enough
+[context](/docs/concepts/context-requirement) — and when even context can't recover
+the inverse, staying `partial` is the design telling you the truth.
+
+## See also
+
+<Cards>
+    <Card title="Guide: iso" href="/docs/guides/leaves/iso" />
+    <Card title="Guide: lossy" href="/docs/guides/leaves/lossy" />
+    <Card title="Guide: partial" href="/docs/guides/leaves/partial" />
+    <Card title="Doors, not flags" href="/docs/concepts/doors" />
+    <Card
+        title="Guide: assertRoundTrip"
+        href="/docs/guides/testing/assert-round-trip"
+    />
+</Cards>

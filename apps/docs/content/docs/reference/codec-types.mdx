@@ -1,0 +1,65 @@
+---
+title: 'Codec types'
+description: 'Codec, CodecFull, Fidelity, CtxArg, and the door interfaces that make up a codec’s shape.'
+---
+
+The type a codec has, and the pieces that make it up. Every constructor returns a
+`Codec` (or the more general `CodecFull`); the [guides](/docs/guides/leaves/iso) show
+how to build them.
+
+## Codec
+
+`Codec<A, B, Ctx, F>` is the common case, where the decode input and encode output
+are the same wire type `B`.
+
+```ts twoslash
+import type { Codec } from 'bimorph';
+
+// domain 'active' | 'inactive', wire 1 | 0, no context, iso fidelity
+type StatusCodec = Codec<'active' | 'inactive', 1 | 0>;
+```
+
+The four type parameters:
+
+- **`A`** — the domain value your app holds.
+- **`B`** — the wire form.
+- **`Ctx`** — the runtime context the codec needs; `void` when context-free.
+- **`F`** — the [fidelity tier](/docs/concepts/fidelity-tiers); defaults to `'iso'`.
+
+## CodecFull
+
+`CodecFull<A, BIn, BOut, Ctx, F>` splits the wire type into a decode **input**
+(`BIn`) and an encode **output** (`BOut`). That split is what expresses
+[alias-narrowing](/docs/concepts/aliases): an aliased `enum_` accepts a wide `BIn`
+and emits a narrow `BOut`. `Codec<A, B, Ctx, F>` is exactly `CodecFull<A, B, B, Ctx, F>`.
+
+Which throwing doors a `CodecFull` exposes depends on `F`: a `'partial'` codec drops
+the throwing `decode`, leaving only the `safe*`, `validate`, and `*Or` doors.
+
+## Fidelity
+
+`Fidelity` is the union `'iso' | 'lossy' | 'partial'` — the round-trip guarantee a
+codec makes, readable at runtime as `codec.fidelity`.
+
+```ts twoslash
+import type { Fidelity } from 'bimorph';
+
+const tier: Fidelity = 'lossy';
+```
+
+## CtxArg
+
+`CtxArg<Ctx>` is the helper that makes the trailing `ctx` argument required only when
+`Ctx` isn't `void`: it resolves to `[]` for a context-free codec and `[ctx: Ctx]`
+otherwise. You rarely name it, but it's what turns `decode(b)` into a compile error
+on a [contextual codec](/docs/concepts/context-requirement).
+
+## See also
+
+<Cards>
+    <Card title="The codec" href="/docs/concepts/the-codec" />
+    <Card title="Fidelity tiers" href="/docs/concepts/fidelity-tiers" />
+    <Card title="The context axis" href="/docs/concepts/context-requirement" />
+    <Card title="Constructors" href="/docs/reference/constructors" />
+    <Card title="Errors & results" href="/docs/reference/errors" />
+</Cards>

@@ -1,0 +1,65 @@
+---
+title: group — N wire fields ↔ 1 domain field
+scenarios: [B4]
+---
+
+# `group` — N wire fields ↔ 1 domain field
+
+`field` is 1:1 — one wire key, one domain key. Some mappings aren't: three checkbox
+booleans in the wire (`public`, `private`, `unlisted`) collapse to a single
+`visibility` enum in the domain. `group` expresses that N↔1 shape. Placed in `object`
+like a field, it contributes *all* its wire keys to the composite wire shape but only
+one key to the domain.
+
+```ts twoslash
+import { object, field, group, iso } from 'bimorph'
+
+const Visibility = group(
+  ['public', 'private', 'unlisted'],
+  iso<
+    'public' | 'private' | 'unlisted',
+    { public: boolean; private: boolean; unlisted: boolean }
+  >({
+    // invalid Side-B states (all-false, two-true) are the codec's job — a resolver or
+    // `partial` decode; no creation diagnostic can catch a runtime-only invariant.
+    decode: (f) => (f.public ? 'public' : f.private ? 'private' : 'unlisted'),
+    encode: (v) => ({
+      public: v === 'public',
+      private: v === 'private',
+      unlisted: v === 'unlisted',
+    }),
+  }),
+)
+
+const Post = object({
+  visibility: Visibility,
+  title: field('title', iso<string, string>({ decode: (s) => s, encode: (s) => s })),
+})
+
+// Domain: ONE field per group.
+const domain = Post.decode({ public: false, private: true, unlisted: false, title: 'Hi' })
+//    ^?
+
+// Wire: the N group keys spread flat alongside the other fields.
+const wire = Post.encode({ visibility: 'unlisted', title: 'Hi' })
+//    ^?
+```
+
+A grouped wire key that's missing is a compile error, just like any other field:
+
+```ts twoslash
+// @errors: 2345
+import { object, group, iso } from 'bimorph'
+
+const Post = object({
+  visibility: group(
+    ['public', 'private'],
+    iso<'public' | 'private', { public: boolean; private: boolean }>({
+      decode: (f) => (f.public ? 'public' : 'private'),
+      encode: (v) => ({ public: v === 'public', private: v === 'private' }),
+    }),
+  ),
+})
+
+Post.decode({ public: true }) // 'private' key missing
+```

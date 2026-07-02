@@ -1,0 +1,76 @@
+---
+title: 'Contextual codecs'
+description: 'Add a Ctx type parameter so decode and encode require the runtime context a value cannot carry, checked at compile time.'
+---
+
+Make a codec contextual when its conversion needs a runtime value the wire and
+domain values don't carry — a directory to resolve an id against, a region to parse
+a phone number, a locale to read a currency symbol. The `ctx` is a third type
+parameter, and the type won't let you forget it.
+
+## Example
+
+```ts twoslash
+import { iso } from 'bimorph';
+
+type User = { id: number; name: string };
+
+// wire id ↔ domain User, resolved against a { users } directory in context
+const UserRef = iso<User, number, { users: readonly User[] }>({
+    decode: (id, ctx) => ctx.users.find((u) => u.id === id)!,
+    encode: (u) => u.id,
+});
+
+const user = UserRef.decode(7, { users: [{ id: 7, name: 'Ada' }] });
+//    ^?
+```
+
+Forget the context and it's a compile error, not a runtime one:
+
+```ts twoslash
+// @errors: 2554
+import { iso } from 'bimorph';
+
+// [!code fold:start]
+type User = { id: number; name: string };
+const UserRef = iso<User, number, { users: readonly User[] }>({
+    decode: (id, ctx) => ctx.users.find((u) => u.id === id)!,
+    encode: (u) => u.id,
+});
+// [!code fold:end]
+UserRef.decode(7); // the { users } context is required
+```
+
+## Options
+
+Add the context as the third type parameter to any leaf constructor and a `ctx`
+argument to `decode` and `encode`. Every door then requires the trailing `ctx`:
+`decode(b)` stops compiling and `decode(b, ctx)` is required.
+
+Two rules make context composable:
+
+- **`Ctx` must be an object type** — `{ region: string }`, never a bare `string`.
+  Composition merges child contexts by intersection, which only works on objects, so
+  keep field names meaningful and disjoint (`region`, `locale`, `users`).
+- **Supply it per call, or bind it once.** Pass `ctx` per call when it varies;
+  [`.bind(ctx)`](/docs/guides/context/bind) fixes it for a batch and hands back an
+  ordinary context-free codec.
+
+<Callout type="warn">
+    **Anti-pattern:** don't type `Ctx` as a bare primitive like `string`. Two codecs
+    that both need a `string` would collide when composed, and the intersection
+    `string & string` tells you nothing. An object with a named field — `{ region:
+    string }` — merges cleanly and documents what the value is.
+</Callout>
+
+## See also
+
+<Cards>
+    <Card title=".bind()" href="/docs/guides/context/bind" />
+    <Card title="The context axis" href="/docs/concepts/context-requirement" />
+    <Card title="pipe" href="/docs/guides/composition/pipe" />
+    <Card
+        title="Parse a value that needs a region"
+        href="/docs/recipes/localize-a-value-with-context"
+    />
+</Cards>

@@ -1,0 +1,45 @@
+---
+title: 'Installation'
+description: 'Add bimorph to a TypeScript project and confirm the types resolve.'
+---
+
+Add bimorph to any TypeScript project. The types are the product, so the one thing
+worth checking after install is that your editor resolves them.
+
+## Steps
+
+Install the package:
+
+```package-install
+bimorph
+```
+
+bimorph is TypeScript-first and runs anywhere TypeScript does — Node, the browser,
+Deno, Bun, edge runtimes. `strict` mode is recommended: the alias-narrowing and
+context machinery relies on it to catch a dropped `ctx` or a mismatched wire value.
+
+Confirm the imports resolve and a codec type-checks:
+
+```ts twoslash
+import { enum_ } from 'bimorph';
+
+const Status = enum_([
+    [1, 'active'],
+    [0, 'inactive'],
+]);
+
+const label = Status.decode(1);
+//    ^?
+```
+
+If your editor shows `label` narrowed to `"active" | "inactive"` on hover, the types
+are wired up. Head to the [Quickstart](/docs/getting-started/quickstart) to build
+something real.
+
+## See also
+
+<Cards>
+    <Card title="Quickstart" href="/docs/getting-started/quickstart" />
+    <Card title="The codec" href="/docs/concepts/the-codec" />
+    <Card title="Guide: enum_" href="/docs/guides/enums/enum" />
+</Cards>

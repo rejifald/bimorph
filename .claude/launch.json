@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "docs-site",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "site", "-l", "4321"],
+      "port": 4321
+    },
+    {
+      "name": "docs",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "docs"],
+      "port": 3411
+    }
+  ]
+}

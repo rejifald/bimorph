@@ -1,0 +1,57 @@
+---
+title: 'Coming from Zod or io-ts'
+description: 'How a two-directional codec differs from a one-directional validator, and which door replaces .parse() / .safeParse().'
+---
+
+If you know Zod or io-ts, a bimorph codec is the two-directional cousin: reach for
+it when you need `encode` as well as `decode` from one definition, not just inbound
+parsing. A Zod schema validates data coming in; a codec also produces the wire form
+going back out, from the same declaration.
+
+## Example
+
+The doors map almost one-to-one onto the validator methods you already know — plus
+the `encode` direction a validator doesn't have:
+
+```ts twoslash
+import { enum_ } from 'bimorph';
+
+const Status = enum_([[1, 'active'], [0, 'inactive']]);
+
+Status.decode(1); // like .parse() — throws on failure
+Status.safeDecode(1); // like .safeParse() — returns a Result
+Status.encode('active'); // the direction a one-way validator doesn't give you
+```
+
+## Options
+
+| You reach for (Zod / io-ts) | bimorph                                             |
+| --------------------------- | --------------------------------------------------- |
+| `.parse(x)`                 | [`decode(x)`](/docs/guides/doors/decode-and-encode) |
+| `.safeParse(x)`             | [`safeDecode(x)`](/docs/guides/doors/safe-doors)    |
+| the encode / serialize side | [`encode(a)`](/docs/guides/doors/decode-and-encode) |
+| `z.object({ … })`           | [`object({ … })`](/docs/guides/composites/object)   |
+| `z.enum([…])` / `z.nativeEnum` | [`enum_([…])`](/docs/guides/enums/enum)          |
+| `.transform()` (one-way)    | [`iso` / `lossy` / `partial`](/docs/concepts/fidelity-tiers) — because it must invert |
+
+The load-bearing difference: a Zod `.transform()` is one-way, so it has no honest
+inverse. A codec's leaf constructors force you to name the round-trip you can
+actually promise — `iso` for exact, `lossy` for usable-but-not-exact, `partial` for
+a fallible inverse — and the [fidelity tier](/docs/concepts/fidelity-tiers) shows up
+in the type.
+
+<Callout type="warn">
+    **Anti-pattern:** don't reach for bimorph when you only ever validate inbound
+    data and never re-serialize it — a one-directional schema is simpler and you
+    won't use `encode`. A codec earns its keep exactly when both directions are
+    real.
+</Callout>
+
+## See also
+
+<Cards>
+    <Card title="Doors, not flags" href="/docs/concepts/doors" />
+    <Card title="Fidelity tiers" href="/docs/concepts/fidelity-tiers" />
+    <Card title="Guide: object" href="/docs/guides/composites/object" />
+    <Card title="Quickstart" href="/docs/getting-started/quickstart" />
+</Cards>

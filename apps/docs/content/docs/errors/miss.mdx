@@ -1,0 +1,41 @@
+---
+title: 'miss'
+description: 'No mapping existed for a wire value on decode, or no canonical wire for a domain value on encode.'
+---
+
+## What you'll see
+
+A `BimorphError` with `code: "miss"` and one of:
+
+- `no mapping for wire <value>` — on decode, a wire value that isn't in the map.
+- `no canonical wire for domain value <value>` — on encode, a domain value the map
+  can't produce.
+
+## Why it happens
+
+An [`enum_`](/docs/guides/enums/enum) (or another leaf) received a value it doesn't
+know, and no recovery was configured. On decode, the wire value matched neither a
+primary entry nor an [alias](/docs/guides/enums/aliases). On encode, the domain value
+has no primary entry — an alias-only spelling can decode but never encode, so a
+domain value reachable only through the wire side has nothing to emit.
+
+## How to fix
+
+- **Add the entry** if the value is legitimate and simply missing.
+- **Set [`onMiss`](/docs/guides/enums/on-miss)** — a `{ default }` or a
+  [resolver](/docs/guides/recovery/resolver) — to recover unmapped values instead of
+  throwing. This also widens the accepted decode input type.
+- **Declare an [alias](/docs/guides/enums/aliases)** if the missing wire value is a
+  known legacy spelling of an existing domain value.
+- If a failure here is expected, decode through
+  [`safeDecode` or `decodeOr`](/docs/guides/doors/safe-doors) instead of the throwing
+  door.
+
+## Related
+
+<Cards>
+    <Card title="enum_" href="/docs/guides/enums/enum" />
+    <Card title="onMiss" href="/docs/guides/enums/on-miss" />
+    <Card title="The resolver" href="/docs/guides/recovery/resolver" />
+    <Card title="Aliases" href="/docs/guides/enums/aliases" />
+</Cards>

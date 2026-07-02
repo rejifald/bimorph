@@ -1,0 +1,65 @@
+---
+title: 'Constructors'
+description: 'Signatures for iso, lossy, partial, enum_, object, field, group, array, tuple, optional, and pipe.'
+---
+
+Every function that builds a codec (or a field of one), and the fidelity tier it
+produces. Each links to its guide for the full signature and a worked example.
+
+## The surface
+
+```ts twoslash
+import {
+    iso,
+    lossy,
+    partial,
+    enum_,
+    object,
+    field,
+    group,
+    array,
+    tuple,
+    optional,
+    pipe,
+} from 'bimorph';
+```
+
+## Constructors
+
+| Function              | Builds                                   | Fidelity                | Guide                                             |
+| --------------------- | ---------------------------------------- | ----------------------- | ------------------------------------------------- |
+| `iso(spec)`           | a leaf codec, exact round-trip           | `iso`                   | [iso](/docs/guides/leaves/iso)                    |
+| `lossy(spec)`         | a leaf codec, no round-trip promise      | `lossy`                 | [lossy](/docs/guides/leaves/lossy)                |
+| `partial(spec)`       | a leaf codec, fallible decode            | `partial`               | [partial](/docs/guides/leaves/partial)            |
+| `enum_(entries, opts)`| a discrete key↔value map                 | `iso`                   | [enum_](/docs/guides/enums/enum)                  |
+| `object(fields)`      | a struct codec + the `validate` door     | weakest of its fields   | [object](/docs/guides/composites/object)          |
+| `field(key, codec)`   | one field of an `object` (rename + omit) | (of its codec)          | [field](/docs/guides/composites/field)            |
+| `group(keys, codec)`  | one field mapping N wire keys ↔ 1 value  | (of its codec)          | [group](/docs/guides/composites/group)            |
+| `array(codec)`        | a homogeneous list codec                 | (of its element)        | [array & tuple](/docs/guides/composites/array-and-tuple) |
+| `tuple(...codecs)`    | a fixed-length heterogeneous list codec  | weakest of its elements | [array & tuple](/docs/guides/composites/array-and-tuple) |
+| `optional(codec)`     | a null/absent ↔ undefined wrapper        | (of its codec)          | [optional](/docs/guides/composites/optional)      |
+| `pipe(a, b)`          | two codecs composed end to end           | weakest of the two      | [pipe](/docs/guides/composition/pipe)             |
+
+## Shapes
+
+The three families share a shape:
+
+- **Leaf constructors** — `iso`, `lossy`, `partial` — take one `{ decode, encode }`
+  spec. `partial`'s `decode` returns a `Result`; the other two return the value.
+- **Composite constructors** — `object`, `array`, `tuple` — take codecs (or
+  `field`/`group` entries) and expose the [`validate`](/docs/guides/doors/validate)
+  door. `field` and `group` build entries _for_ an `object`, not standalone codecs.
+- **`pipe`** composes two codecs, requiring `a`'s domain to equal `b`'s wire.
+
+`enum_` is its own shape: an entries array plus optional
+[`aliases`](/docs/guides/enums/aliases), [`onMiss`](/docs/guides/enums/on-miss), and
+[`onCollision`](/docs/guides/enums/on-collision).
+
+## See also
+
+<Cards>
+    <Card title="Codec types" href="/docs/reference/codec-types" />
+    <Card title="Resolver types" href="/docs/reference/resolver" />
+    <Card title="Helpers" href="/docs/reference/helpers" />
+    <Card title="The codec" href="/docs/concepts/the-codec" />
+</Cards>
