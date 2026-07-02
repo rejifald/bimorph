@@ -1,12 +1,12 @@
 {
   "name": "bimorph",
-  "version": "0.0.0-design",
-  "private": true,
+  "version": "0.0.1",
   "type": "module",
-  "description": "Bidirectional data mapping — prototype proving the alias-narrowing and contextual type machinery.",
+  "description": "Bidirectional data mapping for TypeScript — define a mapping once, get decode and encode, with non-invertibility surfaced in the type.",
   "exports": {
     ".": "./src/index.ts"
   },
+  "files": ["src", "README.md"],
   "workspaces": [
     "apps/*"
   ],

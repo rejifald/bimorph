@@ -1,4 +1,4 @@
-# bimorph *(placeholder name — rename later)*
+# bimorph
 
 A TypeScript library for **bidirectional data mapping**. Define a mapping **once**,
 get both directions for free:
