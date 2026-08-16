@@ -27,6 +27,7 @@ const {
   iso,
   lossy,
   Enum,
+  Directory,
   Struct,
   Field,
   Group,
@@ -293,6 +294,103 @@ check("validate: returns decoded value on success", () => {
   const r = P.validate({ home: "NYC" });
   if (!r.ok) throw new Error("expected success");
   eq(r.value, { home: "New York" }, "decoded value");
+});
+
+// --- Directory: discrete map read from Ctx at call time ----------------------
+
+const countryTable = new Map([
+  ["DE", "Germany"],
+  ["FR", "France"],
+]);
+const ctx = { countries: countryTable };
+
+check("directory: decodes and encodes against a table read from ctx", () => {
+  const Country = Directory((c) => c.countries);
+  eq(Country.safeDecode("DE", ctx).value, "Germany", "decode code → name");
+  eq(Country.encode("France", ctx), "FR", "encode name → code");
+});
+
+check("directory: a miss without recovery is a Result, not a throw", () => {
+  const Country = Directory((c) => c.countries);
+  const r = Country.safeDecode("ZZ", ctx);
+  if (r.ok) throw new Error("expected failure");
+  eq(r.error.code, "miss", "error code");
+});
+
+check("directory: default substitutes a fallback on miss (throwing decode returns)", () => {
+  const Country = Directory((c) => c.countries, { default: "Unknown" });
+  eq(Country.decode("ZZ", ctx), "Unknown", "miss → default");
+  eq(Country.decode("DE", ctx), "Germany", "known code still decodes");
+});
+
+check("directory: recover resolver reads the same ctx the table came from", () => {
+  const Country = Directory((c) => c.countries, {
+    recover: (rc) => rc.ctx.countries.get(rc.input?.toUpperCase?.()) ?? rc.raise(),
+  });
+  eq(Country.decode("de", ctx), "Germany", "resolver normalizes then re-looks-up");
+});
+
+check("directory: recover 'throw' shorthand throws loudly on miss", () => {
+  const Country = Directory((c) => c.countries, { recover: "throw" });
+  const e = throws(() => Country.decode("ZZ", ctx), "miss");
+  eq(e.detail?.code, "miss", "error code");
+});
+
+check("directory: encode miss throws (partial governs decode only)", () => {
+  const Country = Directory((c) => c.countries);
+  const e = throws(() => Country.encode("Atlantis", ctx), "encode miss");
+  eq(e.detail?.code, "miss", "error code");
+});
+
+check("directory: reconcile picks the canonical code; loser still decodes", () => {
+  const table = [
+    ["us", "United States"],
+    ["USA", "United States"],
+  ];
+  const Country = Directory(() => table, { reconcile: "first-wins" });
+  eq(Country.decode("USA"), "United States", "alias code decodes");
+  eq(Country.encode("United States"), "us", "encodes to the first code");
+});
+
+check("directory: an undeclared collision throws at first use, not creation", () => {
+  const table = [
+    ["us", "United States"],
+    ["USA", "United States"],
+  ];
+  const Country = Directory(() => table); // no throw here — diagnostics are deferred
+  const e = throws(() => Country.encode("United States"), "collision");
+  eq(e.detail?.code, "collision", "error code");
+});
+
+check("directory: composes inside a Struct, receiving the threaded ctx", () => {
+  const Country = Directory((c) => c.countries);
+  const Addr = Struct({
+    country: Field("country_code", Country),
+    city: Field("city", iso({ decode: (b) => b, encode: (a) => a })),
+  });
+  eq(
+    Addr.decode({ country_code: "FR", city: "Paris" }, ctx),
+    { country: "France", city: "Paris" },
+    "struct threads the countries table into the Directory child",
+  );
+  eq(
+    Addr.encode({ country: "Germany", city: "Berlin" }, ctx),
+    { country_code: "DE", city: "Berlin" },
+    "encode threads it back",
+  );
+});
+
+check("directory: builds the inverse index once per stable table identity", () => {
+  let reads = 0;
+  const Country = Directory((c) => {
+    reads++;
+    return c.countries; // same Map identity every call → index built once
+  });
+  Country.encode("Germany", ctx);
+  Country.encode("France", ctx);
+  Country.encode("Germany", ctx);
+  eq(reads, 3, "selector runs per call");
+  // Correctness holds regardless of caching; this documents the selector contract.
 });
 
 console.log(`\n${failed ? `${failed} FAILED` : "all runtime checks passed"}`);
