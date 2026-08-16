@@ -4,24 +4,23 @@ description: 'Add a Ctx type parameter so decode and encode require the runtime 
 ---
 
 Make a codec contextual when its conversion needs a runtime value the wire and
-domain values don't carry — a directory to resolve an id against, a region to parse
-a phone number, a locale to read a currency symbol. The `ctx` is a third type
-parameter, and the type won't let you forget it.
+domain values don't carry — a region to parse a phone number, a locale to read a
+currency symbol, the exponent to scale a stored minor-unit amount. The `ctx` is a
+third type parameter, and the type won't let you forget it.
 
 ## Example
 
 ```ts twoslash
 import { iso } from 'bimorph';
 
-type User = { id: number; name: string };
-
-// wire id ↔ domain User, resolved against a { users } directory in context
-const UserRef = iso<User, number, { users: readonly User[] }>({
-    decode: (id, ctx) => ctx.users.find((u) => u.id === id)!,
-    encode: (u) => u.id,
+// wire stores minor units (cents); the domain wants major units — but how many
+// decimal places to shift depends on the currency, which only the context knows.
+const Amount = iso<number, number, { exponent: number }>({
+    decode: (minor, ctx) => minor / 10 ** ctx.exponent,
+    encode: (major, ctx) => Math.round(major * 10 ** ctx.exponent),
 });
 
-const user = UserRef.decode(7, { users: [{ id: 7, name: 'Ada' }] });
+const price = Amount.decode(1999, { exponent: 2 });
 //    ^?
 ```
 
@@ -32,14 +31,21 @@ Forget the context and it's a compile error, not a runtime one:
 import { iso } from 'bimorph';
 
 // [!code fold:start]
-type User = { id: number; name: string };
-const UserRef = iso<User, number, { users: readonly User[] }>({
-    decode: (id, ctx) => ctx.users.find((u) => u.id === id)!,
-    encode: (u) => u.id,
+const Amount = iso<number, number, { exponent: number }>({
+    decode: (minor, ctx) => minor / 10 ** ctx.exponent,
+    encode: (major, ctx) => Math.round(major * 10 ** ctx.exponent),
 });
 // [!code fold:end]
-UserRef.decode(7); // the { users } context is required
+Amount.decode(1999); // the { exponent } context is required
 ```
+
+<Callout type="info">
+    Resolving a *discrete code* against a table from context — an id against a
+    directory, a country code against a glossary — is common enough to have its own
+    combinator. Reach for [`Directory`](/docs/guides/context/directory) rather than a
+    hand-rolled `iso` with `.find()`: it inverts the table for `encode` and makes a
+    miss loud instead of returning `undefined` cast to your domain type.
+</Callout>
 
 ## Options
 
@@ -51,7 +57,7 @@ Two rules make context composable:
 
 - **`Ctx` must be an object type** — `{ region: string }`, never a bare `string`.
   Composition merges child contexts by intersection, which only works on objects, so
-  keep field names meaningful and disjoint (`region`, `locale`, `users`).
+  keep field names meaningful and disjoint (`region`, `locale`, `exponent`).
 - **Supply it per call, or bind it once.** Pass `ctx` per call when it varies;
   [`.bind(ctx)`](/docs/guides/context/bind) fixes it for a batch and hands back an
   ordinary context-free codec.
@@ -66,6 +72,7 @@ Two rules make context composable:
 ## See also
 
 <Cards>
+    <Card title="Directory" href="/docs/guides/context/directory" />
     <Card title=".bind()" href="/docs/guides/context/bind" />
     <Card title="The context axis" href="/docs/concepts/context-requirement" />
     <Card title="pipe" href="/docs/guides/composition/pipe" />

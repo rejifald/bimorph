@@ -1,6 +1,6 @@
 ---
 title: 'Constructors'
-description: 'Signatures for iso, lossy, partial, Enum, Struct, Field, Group, List, Tuple, Nullable, and pipe.'
+description: 'Signatures for iso, lossy, partial, Enum, Directory, Struct, Field, Group, List, Tuple, Nullable, and pipe.'
 ---
 
 Every function that builds a codec (or a field of one), and the fidelity tier it
@@ -14,6 +14,7 @@ import {
     lossy,
     partial,
     Enum,
+    Directory,
     Struct,
     Field,
     Group,
@@ -32,6 +33,7 @@ import {
 | `lossy(spec)`         | a leaf codec, no round-trip promise      | `lossy`                 | [lossy](/docs/guides/leaves/lossy)                |
 | `partial(spec)`       | a leaf codec, fallible decode            | `partial`               | [partial](/docs/guides/leaves/partial)            |
 | `Enum(entries, opts)`| a discrete key↔value map                 | `iso`                   | [Enum](/docs/guides/enums/enum)                  |
+| `Directory(select, opts)`| a discrete map read from `Ctx` at call time | `partial` (`iso` with `default`/`recover`) | [Directory](/docs/guides/context/directory) |
 | `Struct(fields)`      | a struct codec + the `validate` door     | weakest of its fields   | [object](/docs/guides/composites/object)          |
 | `Field(key, codec)`   | one field of an `Struct` (rename + omit) | (of its codec)          | [field](/docs/guides/composites/field)            |
 | `Group(keys, codec)`  | one field mapping N wire keys ↔ 1 value  | (of its codec)          | [group](/docs/guides/composites/group)            |
@@ -54,6 +56,9 @@ The three families share a shape:
 `Enum` is its own shape: an entries array plus optional
 [`aliases`](/docs/guides/enums/aliases), [`default`/`recover`](/docs/guides/enums/on-miss),
 and [`reconcile`](/docs/guides/enums/on-collision).
+[`Directory`](/docs/guides/context/directory) is its dynamic twin — the same
+`default`/`recover`/`reconcile`, but the table is read from `Ctx` through a selector at
+call time, so its decode is `partial` unless you make it total.
 
 ## See also
 

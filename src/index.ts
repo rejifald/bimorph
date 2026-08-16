@@ -464,6 +464,174 @@ export function Enum(
 }
 
 // ---------------------------------------------------------------------------
+// Directory — a discrete map whose table lives in Ctx (dynamic glossary / entity directory)
+// ---------------------------------------------------------------------------
+
+/**
+ * `Enum`'s dynamic twin. Where `Enum` bakes its `[wire, domain]` entries in at creation,
+ * a `Directory` reads the table out of runtime context — a localized glossary, a live
+ * entity collection, a directory fetched from a DB. You pass a *selector* that pulls the
+ * table out of `Ctx`; because the codec reads it lazily inside decode/encode, it drops
+ * into a `Struct` like any other contextual codec and receives the threaded context bag.
+ *
+ * The tax of going dynamic is honest and visible in the type:
+ *
+ *   - **No closed-union input.** `Enum`'s no-recovery overload makes an unmapped wire a
+ *     *compile* error; a runtime table can't promise that, so `Code`/`Name` stay wide.
+ *   - **Diagnostics move from creation to first-use.** The domain-side injectivity check
+ *     (and `reconcile`) run when a given table's inverse index is first built, memoized
+ *     by the table's identity — not when you construct the codec.
+ *   - **Decode is `partial` by default.** A table can always miss, so the bare throwing
+ *     `decode` door is removed and the caller is forced through `safeDecode`/`decodeOr`.
+ *     Supplying a static `default` or a `recover` resolver makes decode total and buys
+ *     the throwing door back (tier `iso`), exactly as `Enum`'s recovery overloads do.
+ *
+ * Encode keeps its throwing door regardless (a domain value absent from the table throws
+ * `miss`, or use `safeEncode`) — `partial` only governs the decode direction.
+ */
+
+/** Built once per table identity: the forward (decode) and canonical-inverse (encode) indexes. */
+interface DirectoryIndex {
+  readonly decodeMap: Map<unknown, unknown>;
+  readonly encodeMap: Map<unknown, unknown>;
+}
+
+// Overload A — no recovery: a runtime table can always miss, so decode is `partial`
+// (no throwing door — go through safeDecode / decodeOr). There is no closed-union input
+// to lean on the way a static Enum does; this is the honest default.
+export function Directory<Code, Name, Ctx = void>(
+  select: (ctx: Ctx) => Iterable<readonly [Code, Name]>,
+  opts?: { readonly reconcile?: Reconcile<Name> },
+): CodecFull<Name, Code, Code, Ctx, "partial">;
+// Overload B — a static `default`: an unmapped code decodes to it, so decode is total and
+// the throwing door returns (tier `iso`), matching Enum's `default` overload.
+export function Directory<Code, Name, Ctx = void>(
+  select: (ctx: Ctx) => Iterable<readonly [Code, Name]>,
+  opts: { readonly default: Name; readonly reconcile?: Reconcile<Name> },
+): CodecFull<Name, Code, Code, Ctx, "iso">;
+// Overload C — `recover`: either the `"throw"` shorthand (assert the table is total — throw
+// loudly on a miss, opting the throwing decode door back on) or a resolver (recover per
+// value). Decode is total-or-loud, so the tier is `iso`. The resolver sees `ctx`, so it can
+// read the same runtime bag the table came from.
+export function Directory<Code, Name, Ctx = void>(
+  select: (ctx: Ctx) => Iterable<readonly [Code, Name]>,
+  opts: {
+    readonly recover: "throw" | Resolver<Code, Name, Ctx>;
+    readonly reconcile?: Reconcile<Name>;
+  },
+): CodecFull<Name, Code, Code, Ctx, "iso">;
+export function Directory(
+  select: (ctx: any) => Iterable<readonly [unknown, unknown]>,
+  opts?: {
+    readonly default?: unknown;
+    readonly recover?: "throw" | Resolver<any, any, any>;
+    readonly reconcile?: Reconcile<any>;
+  },
+): any {
+  const reconcile = opts?.reconcile ?? "throw";
+  const recover = opts?.recover;
+  const hasDefault = !!opts && "default" in opts;
+  const defaultValue = opts?.default;
+
+  // Indexes are keyed on the *identity* of the table the selector returns, so a stable
+  // table (a store's Map, a memoized entries array) builds its inverse index once. A
+  // selector that returns a fresh array each call stays correct but rebuilds every time —
+  // hold the table stable to keep it a one-time cost.
+  const cache = new WeakMap<object, DirectoryIndex>();
+
+  const ambiguousDecode = (code: unknown): BimorphError =>
+    new BimorphError({
+      path: "",
+      code: "ambiguous",
+      input: code,
+      message: `code ${String(code)} maps to two different values in the directory`,
+    });
+
+  const buildIndex = (entries: Iterable<readonly [unknown, unknown]>): DirectoryIndex => {
+    const decodeMap = new Map<unknown, unknown>();
+    const encodeMap = new Map<unknown, unknown>();
+    for (const [code, name] of entries) {
+      if (decodeMap.has(code) && decodeMap.get(code) !== name) throw ambiguousDecode(code);
+      decodeMap.set(code, name);
+
+      if (!encodeMap.has(name)) {
+        encodeMap.set(name, code);
+      } else if (reconcile === "throw") {
+        throw new BimorphError({
+          path: "",
+          code: "collision",
+          input: name,
+          message: `two codes map to value ${String(name)} in the directory — set reconcile`,
+        });
+      } else if (reconcile === "last-wins") {
+        encodeMap.set(name, code);
+      } else if (typeof reconcile === "function") {
+        encodeMap.set(name, reconcile(name, [encodeMap.get(name) as PropertyKey, code as PropertyKey]));
+      }
+      // "first-wins": keep the existing encode target; the later code still decodes.
+    }
+    return { decodeMap, encodeMap };
+  };
+
+  const indexFor = (ctx: any): DirectoryIndex => {
+    const table = select(ctx);
+    // Cache by table identity when possible (Map / array / any object is WeakMap-keyable).
+    if (table !== null && (typeof table === "object" || typeof table === "function")) {
+      const hit = cache.get(table as object);
+      if (hit) return hit;
+      const built = buildIndex(table);
+      cache.set(table as object, built);
+      return built;
+    }
+    return buildIndex(table);
+  };
+
+  const missError = (input: unknown, direction: "decode" | "encode"): DecodeError => ({
+    path: "",
+    code: "miss",
+    input,
+    message:
+      direction === "decode"
+        ? `no directory entry for code ${String(input)}`
+        : `no directory code for value ${String(input)}`,
+  });
+
+  const decodeFn = (code: unknown, ctx: any): unknown => {
+    const { decodeMap } = indexFor(ctx);
+    if (decodeMap.has(code)) return decodeMap.get(code);
+    if (recover === "throw") throw new BimorphError(missError(code, "decode"));
+    if (typeof recover === "function") {
+      return recover({
+        direction: "decode",
+        input: code,
+        reason: "miss",
+        ctx,
+        raise() {
+          throw new BimorphError(missError(code, "decode"));
+        },
+      });
+    }
+    if (hasDefault) return defaultValue;
+    throw new BimorphError(missError(code, "decode"));
+  };
+  const encodeFn = (name: unknown, ctx: any): unknown => {
+    const { encodeMap } = indexFor(ctx);
+    if (!encodeMap.has(name)) throw new BimorphError(missError(name, "encode"));
+    return encodeMap.get(name);
+  };
+
+  const fidelity: Fidelity = recover || hasDefault ? "iso" : "partial";
+
+  return makeCodec(fidelity, decodeFn, encodeFn, (b, ctx) => {
+    try {
+      return { ok: true, value: decodeFn(b, ctx) };
+    } catch (e) {
+      return { ok: false, error: toErr(e, b) };
+    }
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Struct / Field — struct mapping with rename, encode-omit, and Ctx intersection
 // ---------------------------------------------------------------------------
 

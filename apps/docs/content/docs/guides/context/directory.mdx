@@ -1,0 +1,219 @@
+---
+title: 'Directory'
+description: 'Map discrete codes to values with a table that lives in runtime context — a localized glossary or a live entity collection — with misses surfaced in the type.'
+---
+
+`Directory` is [`Enum`](/docs/guides/enums/enum)'s dynamic twin. Where `Enum` bakes
+its `[wire, domain]` entries in when you construct it, a `Directory` reads the table
+out of runtime **context** — a locale-specific glossary, a live entity collection, a
+directory fetched from a database. You hand it a *selector* that pulls the table out
+of `Ctx`; because the codec reads that table lazily inside `decode`/`encode`, it drops
+into a [`Struct`](/docs/guides/composites/object) like any other contextual codec and
+receives the threaded context.
+
+Reach for it whenever the same conceptual mapping — country code ↔ name, user id ↔
+user — is only known at run time: the names are localized, the list is user-managed,
+or the rows come from a request-scoped fetch. If the table is fixed at build time,
+use [`Enum`](/docs/guides/enums/enum) instead — it gives you a closed-union input and
+creation-time diagnostics that a runtime table cannot.
+
+## Example
+
+```ts twoslash
+import { Directory } from 'bimorph';
+
+// the code↔name table isn't known until runtime — it lives in the context
+type Ctx = { countries: ReadonlyMap<string, string> };
+
+const Country = Directory((ctx: Ctx) => ctx.countries);
+
+const ctx: Ctx = {
+    countries: new Map([
+        ['DE', 'Germany'],
+        ['FR', 'France'],
+    ]),
+};
+
+const name = Country.decodeOr('DE', 'Unknown', ctx);
+//    ^?
+
+const code = Country.encode('France', ctx);
+//    ^?
+```
+
+The `ctx` is part of the type, so you cannot forget it — `decode(code)` without the
+table is a compile error, not a runtime `undefined`:
+
+```ts twoslash
+// @errors: 2554
+import { Directory } from 'bimorph';
+// [!code fold:start]
+type Ctx = { countries: ReadonlyMap<string, string> };
+const Country = Directory((ctx: Ctx) => ctx.countries);
+// [!code fold:end]
+Country.decodeOr('DE', 'Unknown'); // the countries table is required
+```
+
+## Decode is `partial` by default
+
+A runtime table can always be missing the code you hand it — you have no closed union
+to lean on the way `Enum` does. So a bare, throwing `decode` would be a lie ("I assert
+this succeeds"), and `Directory` simply doesn't put it on the type. You are pushed
+toward a door that acknowledges the miss:
+
+```ts twoslash
+// @errors: 2551
+import { Directory } from 'bimorph';
+// [!code fold:start]
+type Ctx = { countries: ReadonlyMap<string, string> };
+const Country = Directory((ctx: Ctx) => ctx.countries);
+const ctx: Ctx = { countries: new Map([['DE', 'Germany']]) };
+// [!code fold:end]
+Country.decode('DE', ctx); // no throwing decode on a bare Directory
+
+// use a door that handles the miss:
+Country.safeDecode('DE', ctx); // Result<string>
+Country.decodeOr('DE', 'Unknown', ctx); // string
+```
+
+Give it a static **`default`** or a **`recover`** resolver and decode becomes total —
+the throwing door comes back and the tier is `iso`, exactly as
+[`Enum`'s recovery overloads](/docs/guides/enums/on-miss) work:
+
+```ts twoslash
+import { Directory } from 'bimorph';
+// [!code fold:start]
+type Ctx = { countries: ReadonlyMap<string, string> };
+const ctx: Ctx = { countries: new Map([['DE', 'Germany']]) };
+// [!code fold:end]
+const Country = Directory((c: Ctx) => c.countries, { default: 'Unknown' });
+
+// decode is total now — a miss yields the default instead of throwing:
+const name = Country.decode('ZZ', ctx);
+//    ^?
+```
+
+The **`recover`** resolver sees the same `ctx` the table came from, so it can re-read
+it — normalize the input and look it up again, fall back to a neighbouring table, or
+`raise()` to fail loudly:
+
+```ts twoslash
+import { Directory } from 'bimorph';
+// [!code fold:start]
+type Ctx = { countries: ReadonlyMap<string, string> };
+const ctx: Ctx = { countries: new Map([['DE', 'Germany']]) };
+// [!code fold:end]
+const Country = Directory((c: Ctx) => c.countries, {
+    recover: (rc) => rc.ctx.countries.get(rc.input.toUpperCase()) ?? rc.raise(),
+});
+
+Country.decode('de', ctx); // 'Germany' — normalized, then looked up again
+```
+
+`recover: 'throw'` is the third option: it asserts the table is total and re-raises a
+loud `miss` on anything that isn't — the way to opt the throwing `decode` door back on
+when you are sure the table covers every code.
+
+<Callout type="info">
+    Encode keeps its throwing door regardless of tier. A domain value that isn't in
+    the table throws a `miss` (or use `safeEncode` / `encodeOr`) — `partial` governs
+    the **decode** direction only.
+</Callout>
+
+## It composes: the reason it's a codec, not a lookup
+
+The payoff over "just build an `Enum` from the map" is composition. A `Struct` field
+is constructed at module load, *before* any table exists; you cannot put an `Enum`
+whose entries come from a request into it. A `Directory` reads the table from `ctx`
+inside decode, so it sits in the `Struct` and receives the one context bag the
+composite threads down:
+
+```ts twoslash
+import { Directory, Struct, Field, iso } from 'bimorph';
+// [!code fold:start]
+type Ctx = { countries: ReadonlyMap<string, string> };
+const ctx: Ctx = {
+    countries: new Map([
+        ['DE', 'Germany'],
+        ['FR', 'France'],
+    ]),
+};
+const Str = iso<string, string>({ decode: (b) => b, encode: (a) => a });
+// [!code fold:end]
+const Country = Directory((c: Ctx) => c.countries, { default: 'Unknown' });
+
+const Address = Struct({
+    country: Field('country_code', Country),
+    city: Field('city', Str),
+});
+
+// the Struct is itself contextual — one ctx flows down to the Directory child
+const addr = Address.decode({ country_code: 'FR', city: 'Paris' }, ctx);
+//    ^?
+```
+
+The `Ctx` propagates by intersection, so a composite holding a `Directory` and, say, a
+region-aware phone codec asks for both fields at once. (A `Directory` left at its
+default `partial` tier makes the whole `Struct` `partial` too — the miss can't be
+hidden by nesting. Give the child a `default`/`recover` to keep the composite total.)
+
+## Diagnostics fire at first use, not creation
+
+`Enum` checks its table for domain-side collisions when you build it. A `Directory`
+has no table at build time, so the same checks — is the map injective on the value
+side? which code wins a tie? — run when a given table's inverse index is first built,
+and the result is memoized by the **table's identity**:
+
+```ts
+const table = [
+    ['us', 'United States'],
+    ['USA', 'United States'], // two codes → one value
+];
+
+const Country = Directory(() => table); // no throw here — the table isn't read yet
+Country.encode('United States'); // throws `collision` — set reconcile
+```
+
+Set [`reconcile`](/docs/guides/enums/on-collision) to elect the canonical code; the
+losing code still decodes, becoming an implicit alias:
+
+```ts
+const Country = Directory(() => table, { reconcile: 'first-wins' });
+Country.decode('USA'); // 'United States' — the alias code still resolves
+Country.encode('United States'); // 'us' — the first code is canonical
+```
+
+<Callout type="warn">
+    **Return a stable table.** The inverse index is cached by the identity of the
+    object the selector returns, so a `Map` held in a store — or a memoized entries
+    array — builds its index once. A selector that returns a *fresh* array every call
+    (`(ctx) => Object.entries(ctx.glossary)`) stays correct but rebuilds every time.
+    Hold the table stable to keep it a one-time cost.
+</Callout>
+
+## Directory vs. Enum
+
+The two share a surface — the same `reconcile`, `default`, `recover`, and error codes
+— so promoting a fixed table to a runtime one is a mechanical swap. What changes is
+what a runtime table can honestly promise:
+
+| | [`Enum`](/docs/guides/enums/enum) | `Directory` |
+| --- | --- | --- |
+| Table known | at creation | at call time, from `Ctx` |
+| Decode input | closed union (unmapped code = compile error) | wide `Code` |
+| Default tier | `iso` | `partial` (a table can always miss) |
+| Collision / ambiguity check | at creation | at first use of a table, memoized |
+| Composes in `Struct` | yes | yes — threads `ctx` down |
+
+The tier dropping from `iso` to `partial` isn't a wart; it's the honest tax of going
+dynamic, surfaced at every call site that now has to handle a miss.
+
+## See also
+
+<Cards>
+    <Card title="Enum" href="/docs/guides/enums/enum" />
+    <Card title="Contextual codecs" href="/docs/guides/context/contextual-codecs" />
+    <Card title="default & recover" href="/docs/guides/enums/on-miss" />
+    <Card title="reconcile" href="/docs/guides/enums/on-collision" />
+    <Card title=".bind()" href="/docs/guides/context/bind" />
+</Cards>
